@@ -1,0 +1,170 @@
+
+<graph>
+<node id="g1" x="579" y="137" color="rgb(203,249,176)" label="1. Tablet" object="false" home="true">
+<edge to="g2" />
+<edge to="g5" />
+</node>
+<node id="g2" x="584" y="192" color="rgb(190,203,194)" label="2. Trout" object="false" home="false">
+<edge to="g1" />
+<edge to="g3" />
+</node>
+<node id="g3" x="648" y="247" color="rgb(138,213,163)" label="3. Golly
+" object="false" home="false">
+<edge to="g2" />
+<edge to="g4" />
+<edge to="g8" />
+<edge to="g13" />
+<edge to="g19" />
+<edge to="g24" />
+</node>
+<node id="g4" x="699" y="201" color="rgb(212,173,202)" label="4. Checked
+" object="false" home="false">
+<edge to="g3" />
+<edge to="g5" />
+</node>
+<node id="g5" x="699" y="136" color="rgb(209,242,215)" label="5. Sitter
+" object="false" home="false">
+<edge to="g4" />
+<edge to="g1" />
+</node>
+<node id="g6" x="916" y="252" color="rgb(235,176,194)" label="6. Wheeler
+" object="false" home="false">
+<edge to="g7" />
+<edge to="g9" />
+<edge to="g10" />
+</node>
+<node id="g7" x="851" y="300" color="rgb(143,239,158)" label="7. Weakest
+" object="false" home="false">
+<edge to="g6" />
+<edge to="g8" />
+</node>
+<node id="g8" x="848" y="367" color="rgb(149,170,249)" label="8. Aseptic
+" object="false" home="false">
+<edge to="g7" />
+<edge to="g9" />
+<edge to="g3" />
+<edge to="g13" />
+<edge to="g19" />
+<edge to="g24" />
+</node>
+<node id="g9" x="925" y="393" color="rgb(240,187,231)" label="9. Lolled
+" object="false" home="false">
+<edge to="g8" />
+<edge to="g10" />
+<edge to="g6" />
+</node>
+<node id="g10" x="986" y="355" color="rgb(189,152,218)" label="10. Judge
+" object="false" home="false">
+<edge to="g9" />
+<edge to="g6" />
+</node>
+<node id="g11" x="1072" y="597" color="rgb(208,175,218)" label="11. Dog
+" object="false" home="false">
+<edge to="g14" />
+<edge to="g15" />
+</node>
+<node id="g12" x="1014" y="571" color="rgb(246,208,165)" label="12. Coffee" object="false" home="false">
+<edge to="g13" />
+<edge to="g14" />
+<edge to="g15" />
+</node>
+<node id="g13" x="880" y="582" color="rgb(201,132,156)" label="13. Building" object="false" home="false">
+<edge to="g14" />
+<edge to="g12" />
+<edge to="g8" />
+<edge to="g19" />
+<edge to="g3" />
+<edge to="g24" />
+</node>
+<node id="g14" x="917" y="665" color="rgb(142,238,229)" label="14. Volume
+" object="false" home="false">
+<edge to="g13" />
+<edge to="g12" />
+<edge to="g11" />
+</node>
+<node id="g15" x="1008" y="704" color="rgb(179,143,222)" label="15. Butane
+" object="false" home="false">
+<edge to="g12" />
+<edge to="g11" />
+</node>
+<node id="g16" x="347" y="640" color="rgb(180,135,207)" label="16. Filming
+" object="false" home="false">
+<edge to="g17" />
+<edge to="g20" />
+<edge to="g22" />
+</node>
+<node id="g17" x="425" y="601" color="rgb(186,204,130)" label="17. Rewind
+" object="false" home="false">
+<edge to="g16" />
+<edge to="g18" />
+<edge to="g21" />
+</node>
+<node id="g18" x="515" y="552" color="rgb(227,175,254)" label="18. Blocks
+" object="false" home="false">
+<edge to="g17" />
+<edge to="g19" />
+<edge to="g22" />
+</node>
+<node id="g19" x="642" y="543" color="rgb(236,138,236)" label="19. Baby
+" object="false" home="false">
+<edge to="g18" />
+<edge to="g20" />
+<edge to="g24" />
+<edge to="g13" />
+<edge to="g8" />
+<edge to="g3" />
+</node>
+<node id="g20" x="659" y="641" color="rgb(251,216,197)" label="20. Sidled
+" object="false" home="false">
+<edge to="g19" />
+<edge to="g21" />
+<edge to="g16" />
+</node>
+<node id="g21" x="609" y="714" color="rgb(187,201,220)" label="21. Dries
+" object="false" home="false">
+<edge to="g20" />
+<edge to="g22" />
+<edge to="g17" />
+</node>
+<node id="g22" x="523" y="766" color="rgb(234,234,158)" label="22. Copies
+" object="false" home="false">
+<edge to="g21" />
+<edge to="g18" />
+<edge to="g16" />
+</node>
+<node id="g23" x="421" y="328" color="rgb(196,188,235)" label="23. Wailed
+" object="false" home="false">
+<edge to="g24" />
+<edge to="g25" />
+<edge to="g26" />
+</node>
+<node id="g24" x="529" y="376" color="rgb(148,164,127)" label="24. Whiteboard" object="false" home="false">
+<edge to="g23" />
+<edge to="g25" />
+<edge to="g19" />
+<edge to="g13" />
+<edge to="g8" />
+<edge to="g3" />
+</node>
+<node id="g25" x="451" y="455" color="rgb(253,145,227)" label="25. Laptop
+" object="false" home="false">
+<edge to="g26" />
+<edge to="g24" />
+<edge to="g23" />
+</node>
+<node id="g26" x="362" y="410" color="rgb(149,129,207)" label="26. Enthuse
+" object="false" home="false">
+<edge to="g25" />
+<edge to="g27" />
+<edge to="g28" />
+<edge to="g23" />
+</node>
+<node id="g27" x="274" y="336" color="rgb(195,157,248)" label="27. Harmony
+" object="false" home="false">
+<edge to="g26" />
+</node>
+<node id="g28" x="297" y="501" color="rgb(150,177,190)" label="28. Sparrow
+" object="false" home="false">
+<edge to="g26" />
+</node>
+</graph>

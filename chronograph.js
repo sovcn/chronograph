@@ -23,6 +23,47 @@ var chronograph = {};
 		this.name = "ChronographException";
 	}
 	
+	
+	// Class XmlDocument
+	function XmlDocument(xml){
+		this.xml = xml;
+	}
+	
+	XmlDocument.prototype.parse = function(){
+		var self = this;
+		
+		var data = {};
+		data.nodes = {};
+		var nodes = d3.select(self.xml).selectAll("node").each(function(){
+
+			var node = d3.select(this);
+			
+			var attr = {};
+			
+			attr.id = node.attr('id');
+			attr.color = node.attr('color');
+			attr.x = node.attr('x');
+			attr.y = node.attr('y');
+			attr.label = node.attr('label');
+			
+			
+			var edges = node.selectAll("edge");
+			var edgesArr = [];
+			edges.each(function(){
+				var edge = d3.select(this);
+				var to = edge.attr('to');
+				edgesArr.push(to);
+			});
+			
+			attr.edges = edgesArr;
+			
+			data.nodes[attr.id] = attr;
+			
+		});
+		
+		return data;
+	};
+	
 
 	// Class Node
 	function Node(id, x, y, color, label){
@@ -129,7 +170,8 @@ var chronograph = {};
 		}
 		else{
 			// TODO: Parse XML into JSON
-			self.parsedData = null;
+			var xmlDoc = new XmlDocument(data);
+			self.parsedData = xmlDoc.parse();
 		}
 		
 		// Initialize DOM structure
@@ -282,75 +324,6 @@ var chronograph = {};
 			edge.setSvg(line);
 		}
 		
-	};
-	
-	Graph.prototype.drawSpaciallyOrientedGraph = function(){
-		var self = this;
-		
-		if( self.parsedData != null ){
-			
-			// Lines first so they are under the nodes visually
-			var lineGroup = self.svgContainer.append("g").attr("class", "line-group");
-			var nodeGroup = self.svgContainer.append("g").attr("class", "node-group");
-			
-			for(var index in self.parsedData.nodes){
-				
-				var node = self.parsedData.nodes[index];
-				
-				var nodeG = nodeGroup.append("g");
-				nodeG.attr("id", "node_" + node.id);
-				
-				
-				function dragmove(d) {
-				    d3.select(this)
-				      .attr("cy", ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - this.offsetHeight/2))
-				      .attr("cx", ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - this.offsetWidth/2));
-				    
-				    var text = this.parentNode.childNodes[1];
-				    d3.select(text).attr("x", ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - this.offsetWidth/2) - 5);
-				    d3.select(text).attr("y", ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - this.offsetHeight/2) + 5);
-				}
-
-				var drag = d3.behavior.drag()
-				    .on("drag", dragmove);
-				
-				var circle = nodeG.append("circle");
-				circle.attr("cx", node.x)
-					.attr("cy", node.y)
-					.attr("r", chronograph.nodeSize)
-					.style("fill", node.color)
-					.attr("stroke-width", 1)
-					.attr("stroke", "#777777")
-					.attr("cursor", "move")
-					.call(drag);
-				
-				var label = nodeG.append("text");
-				label.text(node.label)
-					.attr("x", node.x-5)
-					.attr("y", node.y+5)
-					.attr("class", "node-label");
-				
-				self.svgNodes[node.id] = circle;
-				
-				for( var edge_index in node.edges ){
-					var edge = node.edges[edge_index];
-					
-					var toNode = self.parsedData.nodes[edge];
-					
-					var line = lineGroup.append("line");
-					line.attr("x1", node.x)
-						.attr("y1", node.y)
-						.attr("x2", toNode.x)
-						.attr("y2", toNode.y)
-						.attr("stroke", "#777777")
-						.attr("shape-rendering", "geometricPrecision");
-					
-				}
-			}
-		}
-		else{
-			console.error("Error: Cannot draw a graph until it hs been parsed and spacially oriented.");
-		}
 	};
 	
 	
