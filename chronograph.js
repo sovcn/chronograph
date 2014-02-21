@@ -86,6 +86,22 @@ var chronograph = {};
 
 	};
 	
+	Agent.prototype.moveToNode = function(node, animate){
+		
+		this.currentNode = node;
+		
+		if( animate === true ){
+			if( this.svgCircle == null || this.svgCircle === undefined ){
+				throw new ChronographException("SVG DOM element never initialized for " + this.toString());
+			}
+			
+			this.svgCircle.transition().attr("cx", node.x).attr("cy", node.y).duration(1000);
+		}
+		else{
+			this.setPosition(node.x, node.y);
+		}
+	};
+	
 	Agent.prototype.setSvg = function(circle){
 		this.svgCircle = circle;
 	};
@@ -120,7 +136,7 @@ var chronograph = {};
 		this.svgCircle = circle;
 	};
 	
-	Node.prototype.setPosition = function(x, y){
+	Node.prototype.setPosition = function(x, y, agents){
 		if( x !== undefined ) this.x = x;
 		if( y !== undefined ) this.y = y;
 		
@@ -128,6 +144,14 @@ var chronograph = {};
 		
 		for(var index in this.edges){
 			this.edges[index].setPosition();
+		}
+		
+		if( agents !== undefined ){
+			for(var index in agents){
+				if( agents[index].currentNode.equals(this) ){
+					agents[index].setPosition(this.x, this.y);
+				}
+			}
 		}
 	};
 	
@@ -197,6 +221,10 @@ var chronograph = {};
 		
 		self.svgContainer = null;
 		
+		// Whether or not traverse data is included with this graph
+		self.traverse = traverse;
+		
+		self.currentStep = 0;
 		
 		if(format == chronograph.data.JSON){
 			self.parsedData = data;
@@ -229,6 +257,10 @@ var chronograph = {};
 			if( traverse ){
 				self.initializeTraverseData();
 				self.initializeAgentDOM();
+				
+				setInterval(function(){
+					self.arbTimeStep(true);
+				}, 1000);
 			}
 		} catch(e){
 			// Graph data was not initialized properly
@@ -238,6 +270,30 @@ var chronograph = {};
 		
 		self.container.style("display", "block");
 	}
+	
+	Graph.prototype.arbTimeStep = function(animate, step){
+		var self = this;
+		
+		if( step === undefined ){
+			step = self.currentStep + 1;
+		}
+		
+		if( step === undefined ){
+			animate = false;
+		}
+		
+		self.currentStep = step;
+		
+		for( var index in self.agents ){
+			var agent = self.agents[index];
+			if( self.currentStep > agent.steps.length ){
+				continue; // This agent is done.
+			}
+			var agentStep = agent.steps[self.currentStep-1];
+			var toNode = self.nodes[agentStep.to];
+			agent.moveToNode(toNode, animate);
+		}
+	};
 	
 	Graph.prototype.initializeAgentDOM = function(){
 		var self = this;
@@ -363,7 +419,7 @@ var chronograph = {};
 			var x = ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - self.offsetWidth/2);
 			var y = ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - self.offsetHeight/2);
 			var id = self.id.replace("node_", "").replace("_circle", "");
-			graph.nodes[id].setPosition(x,y);
+			graph.nodes[id].setPosition(x,y, graph.agents);
 		    
 		}
 		
