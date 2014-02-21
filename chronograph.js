@@ -2,7 +2,7 @@
  * Namespace: chronograph
  * Author: Kelly Smith
  * Date: 2/19/2014
- * Requirements: jQuery
+ * Requirements: D3
  */
 
 var chronograph = {};
@@ -17,6 +17,7 @@ var chronograph = {};
 	
 	// Constants
 	chronograph.nodeSize = 15;
+	chronograph.agentSize = 5;
 	
 	function ChronographException(message){
 		this.message = message;
@@ -34,7 +35,7 @@ var chronograph = {};
 		
 		var data = {};
 		data.nodes = {};
-		var nodes = d3.select(self.xml).selectAll("node").each(function(){
+		d3.select(self.xml).selectAll("node").each(function(){
 
 			var node = d3.select(this);
 			
@@ -64,6 +65,34 @@ var chronograph = {};
 		return data;
 	};
 	
+	// Class Agent
+	function Agent(id, start, label, steps, currentNode){
+		this.id = id;
+		this.start = start;
+		this.label = label;
+		this.steps = steps;
+		this.currentNode = currentNode;
+		
+		this.svgCircle = null;
+	}
+	
+	Agent.prototype.setPosition = function(x, y){
+		
+		if( this.svgCircle == null || this.svgCircle === undefined ){
+			throw new ChronographException("SVG DOM element never initialized for " + this.toString());
+		}
+		
+		this.svgCircle.attr("cx", x).attr("cy", y);
+
+	};
+	
+	Agent.prototype.setSvg = function(circle){
+		this.svgCircle = circle;
+	};
+	
+	Agent.prototype.toString = function(){
+		return "Agent(" + this.id + ")";
+	};
 
 	// Class Node
 	function Node(id, x, y, color, label){
@@ -154,15 +183,19 @@ var chronograph = {};
 	};
 	
 	// Class Graph
-	function Graph(cont, data, format){
+	function Graph(cont, data, format, traverse){
 		var self = this;
 		
 		// Data Members
 		self.nodes = {};
 		self.edges = [];
+		self.agents = {};
 		
 		self.lineGroup = null;
 		self.nodeGroup = null;
+		self.agentGroup = null;
+		
+		self.svgContainer = null;
 		
 		
 		if(format == chronograph.data.JSON){
@@ -192,9 +225,59 @@ var chronograph = {};
 		self.positionGraph();
 		//self.drawSpaciallyOrientedGraph();
 		
+		try{
+			if( traverse ){
+				self.initializeTraverseData();
+				self.initializeAgentDOM();
+			}
+		} catch(e){
+			// Graph data was not initialized properly
+			console.error(e.message);
+			return;
+		}
 		
 		self.container.style("display", "block");
 	}
+	
+	Graph.prototype.initializeAgentDOM = function(){
+		var self = this;
+		
+		self.agentGroup = self.svgContainer.append("g").attr("class", "agent-group");
+		
+		for(var index in self.agents){
+			var agent = self.agents[index];
+			
+			var circle = self.agentGroup.append("circle");
+			circle.attr("id", "agent_" + agent.id)
+			     .attr("r", chronograph.agentSize)
+			     .attr("fill", "blue")
+			     .attr("stroke-width", 1)
+			     .attr("stroke", "#777777");
+			
+			agent.setSvg(circle);
+			agent.setPosition(agent.currentNode.x, agent.currentNode.y);
+		}
+	};
+	
+	Graph.prototype.initializeTraverseData = function(){
+		var self = this;
+		
+		if( self.parsedData != null && self.parsedData.traversal != null ){
+			var traversal = self.parsedData.traversal;
+			for(var index in traversal.agents){
+				var agent = traversal.agents[index];
+				var node = self.nodes[agent.start];
+				
+				if( node == null ){
+					throw new ChronographException("Agents must start at a valid node.");
+					return;
+				}
+				
+				var agentObj = new Agent(agent.id, agent.start, agent.label, agent.steps, node);
+				self.agents[agent.id] = agentObj;
+			}
+		}
+	};
 	
 	Graph.prototype.positionGraph = function(){
 		var self = this;
@@ -202,10 +285,6 @@ var chronograph = {};
 		for(var index in self.nodes){
 			self.nodes[index].setPosition();
 		}
-		
-		/*for(var index in self.edges){
-			self.edges[index].setPosition();
-		}*/
 	};
 	
 	// This function might need to be optimized later for large graphs.  Went with readability over performance for now.
@@ -290,7 +369,7 @@ var chronograph = {};
 		
 		var drag = d3.behavior.drag()
 	    .on("drag", function(){
-	    	dragmove(this, self)
+	    	dragmove(this, self);
 	    });
 		
 		for(var index in self.nodes){
@@ -328,19 +407,23 @@ var chronograph = {};
 	
 	
 	// Namespace Accessor
-	chronograph.newGraph = function(container, data, format){
+	chronograph.newGraph = function(container, data, format, traverse){
 		
 		if( window.d3 ){
 			
 			// Make sure that the user has specified a valid data format to provide to chronograph
-			if( format == null || chronograph.validFormats[format] != null ){
+			if( format === undefined || chronograph.validFormats[format] != null ){
 				
 				// Default to JSON
-				if( format == null ){
+				if( format === undefined ){
 					format = chronograph.JSON;
 				}
 				
-				return new Graph(container, data, format);
+				if( traverse === undefined ){
+					traverse = false;
+				}
+				
+				return new Graph(container, data, format, traverse);
 			}
 			else{
 				console.error("Invalid data format specified. Please consult the documentation for specifying a proper data format (default: chronograph.data.JSON).");
