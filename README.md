@@ -1,6 +1,6 @@
 # Introduction
 
-Chronograph is a JavaScript library for generating graph visualizations from temporal data models.  It functions by taking graph structures in one of two formats (JSON or XML) and displaying the graph on a page using SVG.  Additionally, agent traversal information can be bundled with the graph structure and then animated on the displayed graph.
+ChronoGraph is a JavaScript library for generating graph visualizations from temporal data models.  It functions by taking graph structures in one of two formats (JSON or XML) and displaying the graph on a page using SVG.  Additionally, agent traversal information can be bundled with the graph structure and then animated on the displayed graph.
 
 # Features
 
@@ -12,10 +12,21 @@ Chronograph is a JavaScript library for generating graph visualizations from tem
 
 # Installation
 
-Clone a copy of Chronograph by running:
+**Requirement**
+You must install [D3] (d3js.org) in your application before running CronoGraph
+
+Clone a copy of ChronoGraph by running:
 
 ```bash
 git clone https://github.com/sovcn/chronograph.git
 ```
 
-Include 
+Include chronograph.js in your document:
+
+```html
+<script type="text/javascript" src="chronograph.js"></script>
+```
+
+# Using ChronoGraph
+
+Coming Soon!
