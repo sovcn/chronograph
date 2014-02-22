@@ -62,6 +62,31 @@ var chronograph = {};
 			
 		});
 		
+		data.traversal = {};
+		data.traversal.agents = {};
+		d3.select(self.xml).selectAll("agent").each(function(){
+			var agent = d3.select(this);
+			
+			var attr = {};
+			attr.id = agent.attr('id');
+			attr.label = agent.attr('label');
+			attr.start = agent.attr('start');
+			
+			var steps = agent.selectAll("step");
+			var stepsArr = [];
+			steps.each(function(){
+				var step = d3.select(this);
+				var stepObj = {};
+				stepObj.from = step.attr('from');
+				stepObj.to = step.attr('to');
+				stepObj.timespan = this.textContent;
+				stepsArr.push(stepObj);
+			});
+			attr.steps = stepsArr;
+			
+			data.traversal.agents[attr.id] = attr;
+		});
+		
 		return data;
 	};
 	
@@ -326,7 +351,6 @@ var chronograph = {};
 				
 				if( node == null ){
 					throw new ChronographException("Agents must start at a valid node.");
-					return;
 				}
 				
 				var agentObj = new Agent(agent.id, agent.start, agent.label, agent.steps, node);

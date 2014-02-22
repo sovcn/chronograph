@@ -29,23 +29,23 @@
 		<script src="d3.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="../chronograph.js"></script>
 		<script type="text/javascript">
-			d3.json('data/graph1.json', function(error, json){
+			/*d3.json('data/graph1.json', function(error, json){
 				if( error ){
 					console.error(error);
 				}
 				else{
 					var graph = chronograph.newGraph("#container", json, chronograph.data.JSON, true);
 				}
-			});
+			});*/
 			
-			/*d3.xml('data/graph2.xml', 'application/xml', function(error, xml){
+			d3.xml('data/graph2.xml', 'application/xml', function(error, xml){
 				if( error ){
 					console.error(error);
 				}
 				else{
-					var graph = chronograph.newGraph("#container", xml, chronograph.data.XML);
+					var graph = chronograph.newGraph("#container", xml, chronograph.data.XML, true);
 				}
-			});*/
+			});
 		</script>
 	</body>
 </html>
