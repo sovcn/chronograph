@@ -126,7 +126,7 @@ var chronograph = {};
 		var xDiff = (toNode.x - fromNode.x) * fraction;
 		var yDiff = (toNode.y - fromNode.y) * fraction;
 		
-		self.setPosition(fromNode.x + xDiff, fromNode.y + yDiff);
+		self.setPosition(parseInt(fromNode.x) + xDiff, parseInt(fromNode.y) + yDiff);
 		
 		// Figure out where to draw the agent based on the fractional part of the step
 		
@@ -182,7 +182,7 @@ var chronograph = {};
 		this.svgCircle = circle;
 	};
 	
-	Node.prototype.setPosition = function(x, y, agents){
+	Node.prototype.setPosition = function(x, y, agents, graph){
 		if( x !== undefined ) this.x = x;
 		if( y !== undefined ) this.y = y;
 		
@@ -194,9 +194,7 @@ var chronograph = {};
 		
 		if( agents !== undefined ){
 			for(var index in agents){
-				if( agents[index].currentNode.equals(this) ){
-					agents[index].setPosition(this.x, this.y);
-				}
+				agents[index].setToTimeStep(graph.currentStep, graph.nodes);
 			}
 		}
 	};
@@ -335,6 +333,8 @@ var chronograph = {};
 	
 	Graph.prototype.setArbitraryTimeStep = function(step){
 		var self = this;
+		
+		self.currentStep = step;
 		
 		for(var index in self.agents){
 			self.agents[index].setToTimeStep(step, self.nodes);
@@ -493,7 +493,7 @@ var chronograph = {};
 			var x = ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - width/2);
 			var y = ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - height/2);
 			var id = self.id.replace("node_", "").replace("_circle", "");
-			graph.nodes[id].setPosition(x,y, graph.agents);
+			graph.nodes[id].setPosition(x,y, graph.agents, graph);
 		    
 		}
 		
