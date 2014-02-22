@@ -78,7 +78,27 @@
 		<script type="text/javascript" src="../chronograph.js"></script>
 		<script type="text/javascript" src="../gravity.js"></script>
 		<script type="text/javascript">
+<<<<<<< HEAD
+			/*d3.json('data/graph1.json', function(error, json){
+				if( error ){
+					console.error(error);
+				}
+				else{
+					var graph = chronograph.newGraph("#container", json, chronograph.data.JSON, true);
+				}
+			});*/
+			
+			d3.xml('data/graph2.xml', 'application/xml', function(error, xml){
+				if( error ){
+					console.error(error);
+				}
+				else{
+					var graph = chronograph.newGraph("#container", xml, chronograph.data.XML, true);
+				}
+			});
+=======
 			gravity.load();
+>>>>>>> 706afea35017e49d3df9b89d72d598e09a34fba5
 		</script>
 	</body>
 </html>
