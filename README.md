@@ -7,8 +7,8 @@ Chronograph is a JavaScript library for generating graph visualizations from tem
 * [x] Import JSON or XML graph structures and draw using SVG package.
 * [x] Package graph traversal (time-sensitive) data and bind to graph structure.
 * [x] Simulate graph traversal over time using arbitrary time-steps.
-* [] Simulate graph traversal using included time data.
-* [] Provide external interface for interacting and maniuplating graph in real time.
+* [ ] Simulate graph traversal using included time data.
+* [ ] Provide external interface for interacting and maniuplating graph in real time.
 
 # Installation
 
