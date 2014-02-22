@@ -225,6 +225,7 @@ var chronograph = {};
 		self.traverse = traverse;
 		
 		self.currentStep = 0;
+		self.maxSteps = 0;
 		
 		if(format == chronograph.data.JSON){
 			self.parsedData = data;
@@ -257,10 +258,6 @@ var chronograph = {};
 			if( traverse ){
 				self.initializeTraverseData();
 				self.initializeAgentDOM();
-				
-				setInterval(function(){
-					self.arbTimeStep(true);
-				}, 1000);
 			}
 		} catch(e){
 			// Graph data was not initialized properly
@@ -271,7 +268,7 @@ var chronograph = {};
 		self.container.style("display", "block");
 	}
 	
-	Graph.prototype.arbTimeStep = function(animate, step){
+	Graph.prototype.arbitraryTimeStep = function(animate, step){
 		var self = this;
 		
 		if( step === undefined ){
@@ -416,8 +413,11 @@ var chronograph = {};
 		
 		
 		function dragmove(self, graph) {
-			var x = ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - self.offsetWidth/2);
-			var y = ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - self.offsetHeight/2);
+			var element = d3.select(self);
+			var height;
+			var width = height = parseInt(element.attr('r')) + 2*element.attr('stroke-width');
+			var x = ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - width/2);
+			var y = ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - height/2);
 			var id = self.id.replace("node_", "").replace("_circle", "");
 			graph.nodes[id].setPosition(x,y, graph.agents);
 		    
