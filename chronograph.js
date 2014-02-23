@@ -368,7 +368,7 @@ var chronograph = {};
 	Graph.prototype.initializeAgentDOM = function(){
 		var self = this;
 		
-		self.agentGroup = self.svgContainer.append("g").attr("class", "agent-group");
+		self.agentGroup = self.graphContainer.append("g").attr("class", "agent-group");
 		
 		for(var index in self.agents){
 			var agent = self.agents[index];
@@ -488,13 +488,15 @@ var chronograph = {};
 		self.svgContainer.attr("id", "svg_" + unique_id)
 						 .call(zoom);
 		
+		self.graphContainer = self.svgContainer.append("g").attr("id", "graph_container");
+		
 		function zoomed() {
-			self.svgContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+			self.graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 		}
 		
 		// Lines first so they are under the nodes visually
-		self.lineGroup = self.svgContainer.append("g").attr("class", "line-group");
-		self.nodeGroup = self.svgContainer.append("g").attr("class", "node-group");
+		self.lineGroup = self.graphContainer.append("g").attr("class", "line-group");
+		self.nodeGroup = self.graphContainer.append("g").attr("class", "node-group");
 		
 		function dragstarted(d) {
 		  d3.event.sourceEvent.stopPropagation();
