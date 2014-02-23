@@ -5,7 +5,22 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width">
 		
+		<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/ui-lightness/jquery-ui.min.css" />
+		
 		<style>
+		
+			div{
+				border: 0;
+				margin: 0;
+				padding: 0;
+			}
+			
+			svg{
+				border: 0;
+				padding: 0;
+				margin: 0;
+			}
+		
 			.node-label{
 				-webkit-user-select: none; /* Chrome/Safari */        
 			    -moz-user-select: none; /* Firefox */
@@ -21,50 +36,49 @@
 			body{
 				width: 100%;
 				height: 100%;
-			}
-			
-			div#container{
-				width: 100%;
-				height: 100%;
-				min-height: 1000px;
-			}
-			
-			svg{
-				width: 100%;
-				height: 100%;
 				margin: 0;
 				padding: 0;
-				min-height: 1000px;
 			}
+			
+			div#left_container{
+				width: 80%;
+				float: left;
+				margin: 0;
+				padding: 0;
+				border-right: 1px solid #CCCCCC;
+			}
+			
+			div#right_container{
+				width: 19%;
+				float: right;
+				margin: 0;
+				padding: 0;
+			}
+			
+			div#top_controller{
+				overflow: hidden;
+			}
+			
+			div#timeline_container{
+				margin-top: 10px;
+				margin-left: 20px;
+				margin-right: 20px;
+			}
+			
 		</style>
 	</head>
 	<body>
-		
 		<div id="container">
 		
 		</div>
 		
-		
+		<script src="jquery-1.10.2.js"></script>
+		<script src="jquery-ui.min.js"></script>
 		<script src="d3.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="../chronograph.js"></script>
+		<script type="text/javascript" src="../gravity.js"></script>
 		<script type="text/javascript">
-			d3.json('data/graph1.json', function(error, json){
-				if( error ){
-					console.error(error);
-				}
-				else{
-					var graph = chronograph.newGraph("#container", json, chronograph.data.JSON, true);
-				}
-			});
-			
-			/*d3.xml('data/graph2.xml', 'application/xml', function(error, xml){
-				if( error ){
-					console.error(error);
-				}
-				else{
-					var graph = chronograph.newGraph("#container", xml, chronograph.data.XML);
-				}
-			});*/
+			gravity.load();
 		</script>
 	</body>
 </html>

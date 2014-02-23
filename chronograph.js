@@ -86,6 +86,27 @@ var chronograph = {};
 
 	};
 	
+	// Step should be a floating point value in the range (0, self.steps.length)
+	Agent.prototype.setToTimeStep = function(step, nodes){
+		var self = this;
+		
+		var actualStep = Math.min(step, self.steps.length);
+		
+		var fromIndex = Math.floor(actualStep);
+		if( fromIndex == self.steps.length ) fromIndex--;
+		
+		var fromNode = nodes[self.steps[fromIndex].from];
+		var toNode = nodes[self.steps[fromIndex].to];
+		var fraction = actualStep - Math.floor(actualStep);
+		var xDiff = (toNode.x - fromNode.x) * fraction;
+		var yDiff = (toNode.y - fromNode.y) * fraction;
+		
+		self.setPosition(fromNode.x + xDiff, fromNode.y + yDiff);
+		
+		// Figure out where to draw the agent based on the fractional part of the step
+		
+	};
+	
 	Agent.prototype.moveToNode = function(node, animate){
 		
 		this.currentNode = node;
@@ -207,7 +228,7 @@ var chronograph = {};
 	};
 	
 	// Class Graph
-	function Graph(cont, data, format, traverse){
+	function Graph(){
 		var self = this;
 		
 		// Data Members
@@ -221,6 +242,11 @@ var chronograph = {};
 		
 		self.svgContainer = null;
 		
+		
+	}
+	
+	Graph.prototype.draw = function(cont, data, format, traverse){
+		var self = this;
 		// Whether or not traverse data is included with this graph
 		self.traverse = traverse;
 		
@@ -266,7 +292,29 @@ var chronograph = {};
 		}
 		
 		self.container.style("display", "block");
-	}
+	};
+	
+	Graph.prototype.setMaxSteps = function(){
+		var self = this;
+		
+		var max = 0;
+		for(var index in self.agents){
+			var agent = self.agents[index];
+			if( agent.steps.length > max ){
+				max = agent.steps.length;
+			}
+		}
+		
+		self.maxSteps = max;
+	};
+	
+	Graph.prototype.setArbitraryTimeStep = function(step){
+		var self = this;
+		
+		for(var index in self.agents){
+			self.agents[index].setToTimeStep(step, self.nodes);
+		}
+	};
 	
 	Graph.prototype.arbitraryTimeStep = function(animate, step){
 		var self = this;
@@ -329,6 +377,8 @@ var chronograph = {};
 				var agentObj = new Agent(agent.id, agent.start, agent.label, agent.steps, node);
 				self.agents[agent.id] = agentObj;
 			}
+			
+			self.setMaxSteps();
 		}
 	};
 	
