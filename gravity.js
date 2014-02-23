@@ -118,6 +118,19 @@ var gravity = {};
 	Timeline.prototype.createDOM = function(){
 		var self = this;
 		
+		self.playButtonContainer = $("<div>").attr("id", "play_button_container");
+		self.container.append(self.playButtonContainer);
+		
+		var playButton = $("<button>").attr("id", "play_button");
+		playButton.button({
+			icons:{
+				primary: "ui-icon-play"
+			},
+			text: false
+		});
+		
+		self.playButtonContainer.append(playButton);
+		
 		self.timelineContainer = $("<div>").attr("id", "timeline_container");
 		self.container.append(self.timelineContainer);
 		
