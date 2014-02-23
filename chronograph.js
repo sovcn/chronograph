@@ -159,8 +159,8 @@ var chronograph = {};
 	// Class Node
 	function Node(id, x, y, color, label){
 		this.id = id;
-		this.x = x;
-		this.y = y;
+		this.x = parseInt(x);
+		this.y = parseInt(y);
 		this.color = color;
 		this.label = label;
 		
@@ -375,6 +375,7 @@ var chronograph = {};
 			
 			var circle = self.agentGroup.append("circle");
 			circle.attr("id", "agent_" + agent.id)
+				  .style("cursor", "pointer")
 			     .attr("r", chronograph.agentSize)
 			     .attr("fill", "blue")
 			     .attr("stroke-width", 1)
@@ -475,32 +476,48 @@ var chronograph = {};
 	
 	Graph.prototype.initializeContainerDOM = function(){
 		var self = this;
+
+		var zoom = d3.behavior.zoom()
+				    .scaleExtent([1, 10])
+				    .on("zoom", zoomed);
+		
 		
 		self.svgContainer = self.container.append("svg");
 		
 		var unique_id = self.container.attr("id").replace("#", "");
-		self.svgContainer.attr("id", "svg_" + unique_id);
+		self.svgContainer.attr("id", "svg_" + unique_id)
+						 .call(zoom);
+		
+		function zoomed() {
+			self.svgContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+		}
 		
 		// Lines first so they are under the nodes visually
 		self.lineGroup = self.svgContainer.append("g").attr("class", "line-group");
 		self.nodeGroup = self.svgContainer.append("g").attr("class", "node-group");
 		
-		
-		function dragmove(self, graph) {
-			var element = d3.select(self);
-			var height;
-			var width = height = parseInt(element.attr('r')) + 2*element.attr('stroke-width');
-			var x = ((d3.event.sourceEvent.pageX-chronograph.nodeSize/2) - width/2);
-			var y = ((d3.event.sourceEvent.pageY-chronograph.nodeSize/2) - height/2);
-			var id = self.id.replace("node_", "").replace("_circle", "");
-			graph.nodes[id].setPosition(x,y, graph.agents, graph);
-		    
+		function dragstarted(d) {
+		  d3.event.sourceEvent.stopPropagation();
+		  d3.select(this).classed("dragging", true);
+		}
+
+		function dragged(d) {
+		  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+		  self.nodes[d.id].setPosition(d.x,d.y, self.agents, self);
+		}
+
+		function dragended(d) {
+		  d3.select(this).classed("dragging", false);
 		}
 		
 		var drag = d3.behavior.drag()
-	    .on("drag", function(){
-	    	dragmove(this, self);
-	    });
+				    .origin(function(d) { 
+				    	return d; 
+				    })
+				    .on("dragstart", dragstarted)
+				    .on("drag", dragged)
+				    .on("dragend", dragended);
+		
 		
 		for(var index in self.nodes){
 			var node = self.nodes[index];
@@ -508,14 +525,19 @@ var chronograph = {};
 			var group = self.nodeGroup.append("g");
 			group.attr("id", "node_" + node.id);
 			
-			var circle = group.append("circle");
-			circle.attr("id", "node_" + node.id + "_circle")
-				  .attr("r", chronograph.nodeSize)
-				  .attr("fill", node.color)
-				  .attr("stroke-width", 1)
-				  .attr("stroke", "#777777")
-				  .attr("cursor", "move")
-				  .call(drag);
+			//var circle = group.append("circle");
+			
+			var circle = group.selectAll("circle")
+							  .data([node])
+							  .enter()
+							  .append("circle")
+							  .attr("id", "node_" + node.id + "_circle")
+							  .attr("r", chronograph.nodeSize)
+							  .attr("fill", node.color)
+							  .attr("stroke-width", 1)
+							  .attr("stroke", "#777777")
+							  .attr("cursor", "move")
+							  .call(drag);
 			
 			var label = group.append("text");
 			label.attr("id", "node_" + node.id + "_label");
