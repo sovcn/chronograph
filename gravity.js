@@ -42,10 +42,13 @@ var gravity = {};
 		
 		var graphRange = [0, self.graph.maxSteps];
 		
-		self.timeline = new Timeline([0,500], graphRange, function(value){
+		self.timeline = new Timeline(self, [0,500], graphRange, function(value){
 			self.graph.setArbitraryTimeStep(value);
 		});
 		self.timeline.draw(self.topController);
+		
+		self.settingsPanel = new Settings(self.rightContainer, self.graph);
+		self.settingsPanel.updateInfo();
 		
 		setSizes(self);
 	};
@@ -95,10 +98,10 @@ var gravity = {};
 	
 	
 	// Class Timeline
-	function Timeline(domain, range, slideCallback){
+	function Timeline(controller, domain, range, slideCallback){
 		var self = this;
 		self.container = null;
-		
+		self.controller = controller;
 		self.sliderRange = domain;
 		self.graphRange = range;
 		self.slideCallback = slideCallback;
@@ -139,9 +142,53 @@ var gravity = {};
 			slide: function(event, ui){
 				var value = $(this).slider("value");
 				self.slideCallback(self.timelineScale(value));
+				self.controller.settingsPanel.updateInfo();
 			}
 		});
 		
+	};
+	
+	// Class Information
+	function Settings(container, graph){
+		var self = this;
+		
+		if( container == null || container === undefined ){
+			console.error("Must pass a container to Information constructor.");
+			return null;
+		}
+		self.container = container;
+		self.graph = graph;
+		
+		// DOM
+		self.information = null;
+		self.settings = null;
+		
+		// Information Handlers
+		self.timestep = null;
+		
+		self.createDOM();
+	}
+	
+	// Updates all of the information in the GUI
+	Settings.prototype.updateInfo = function(){
+		var self = this;
+		
+		self.timestep.text("Current Timestep: " + Math.ceil(self.graph.currentStep*100)/100);
+	};
+	
+	Settings.prototype.createDOM = function(){
+		var self = this;
+		
+		self.information = $("<div>").attr("id", "information_panel");
+		
+		var header = $("<h1>").attr("id", "info_header").text("Information");
+		self.information.append(header);
+		
+		self.timestep = $("<p>").attr("id", "traverse_timestep");
+		self.information.append(self.timestep);
+		
+		
+		self.container.append(self.information);
 	};
 	
 	gravity.load = function(){

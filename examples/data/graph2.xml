@@ -118,6 +118,25 @@
 				<step from="g20" to="g22">631</step>
 				<step from="g22" to="g23">396</step>
 			</agent>
+			<agent id="a2" label="10.1.1.17" start="g5">
+				<step from="g5" to="g14">353</step>
+				<step from="g14" to="g16">353</step>
+				<step from="g16" to="g18">280</step>
+				<step from="g18" to="g20">374</step>
+				<step from="g20" to="g22">631</step>
+				<step from="g22" to="g23">396</step>
+			</agent>
+			<agent id="a3" label="10.1.1.19" start="g14">
+				<step from="g14" to="g20">353</step>
+				<step from="g20" to="g22">280</step>
+				<step from="g22" to="g21">374</step>
+				<step from="g21" to="g14">631</step>
+				<step from="g14" to="g16">353</step>
+				<step from="g16" to="g18">280</step>
+				<step from="g18" to="g20">374</step>
+				<step from="g20" to="g22">631</step>
+				<step from="g22" to="g23">396</step>
+			</agent>
 		</agents>
 	</traversal>
 </graph>
