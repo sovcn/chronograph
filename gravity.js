@@ -22,6 +22,8 @@ var gravity = {};
 		self.topControllerHeight = 40;
 		self.topControllerBorder = 5;
 		
+		self.playButtonWidth = 35;
+		
 		self.leftContainer = null;
 		self.rightContainer = null;
 		self.topController = null;
@@ -65,6 +67,8 @@ var gravity = {};
 		svgContainer.height(self.graphContainer.height());
 		svgContainer.width(self.graphContainer.width());
 		
+		self.timeline.timelineContainer.width(self.topController.width() - self.playButtonWidth*2);
+		
 	};
 	
 	Controller.prototype.createDOM = function(){
@@ -88,8 +92,7 @@ var gravity = {};
 		
 		self.container.append(self.leftContainer);
 		self.container.append(self.rightContainer);
-		
-		setSizes(self);
+
 		$(window).resize(function(){
 			setSizes(self);
 		});
@@ -105,6 +108,12 @@ var gravity = {};
 		self.sliderRange = domain;
 		self.graphRange = range;
 		self.slideCallback = slideCallback;
+		
+		self.sliderMax = 500;
+		self.playResolution = 50; // ms
+		self.playNumSteps = 100;
+		
+		self.playIntHandler = null;
 		
 		self.timelineScale = d3.scale.linear()
 									 .domain(self.sliderRange)
@@ -132,13 +141,53 @@ var gravity = {};
 			text: false
 		});
 		
+		var playStep = function(){
+			var currentValue = parseInt(self.timelineContainer.slider("value"));
+			var stepSize = self.sliderRange[1]/self.playNumSteps;
+			var newValue = currentValue + stepSize;
+			
+			if( newValue > parseInt(self.timelineContainer.slider("option", "max"))){
+				clearInterval(self.playIntHandler);
+				self.playIntHandler = null;
+				$(playButton).button("option", {
+					icons:{ primary: "ui-icon-play" }
+				});
+			}
+			else{
+				self.timelineContainer.slider("value", newValue);
+				self.slideCallback(self.timelineScale(newValue));
+				self.controller.settingsPanel.updateInfo();
+			}
+		};
+		
+		playButton.click(function(){
+			if( self.playIntHandler == null ){
+				// Play!
+				var currentValue = parseInt(self.timelineContainer.slider("value"));
+				if( currentValue == parseInt(self.timelineContainer.slider("option", "max"))){
+					self.timelineContainer.slider("value", self.sliderRange[0]);
+				}
+				self.playIntHandler = setInterval(playStep, self.playResolution);
+				$(this).button("option", {
+					icons:{ primary: "ui-icon-pause" }
+				});
+			}
+			else{
+				clearInterval(self.playIntHandler);
+				self.playIntHandler = null;
+				$(this).button("option", {
+					icons:{ primary: "ui-icon-play" }
+				});
+			}
+		});
+		
 		self.playButtonContainer.append(playButton);
 		
 		self.timelineContainer = $("<div>").attr("id", "timeline_container");
 		self.container.append(self.timelineContainer);
 		
 		self.timelineContainer.slider({
-			max: 500,
+			max: self.sliderMax,
 			slide: function(event, ui){
 				var value = $(this).slider("value");
 				self.slideCallback(self.timelineScale(value));
