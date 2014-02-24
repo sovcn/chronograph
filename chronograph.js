@@ -175,6 +175,10 @@ var chronograph = {};
 			
 			self.setPosition(parseInt(fromNode.x) + xDiff, parseInt(fromNode.y) + yDiff);
 		}
+		else{
+			var fromNode = nodes[self.steps[fromIndex-1].to];
+			self.setPosition(parseInt(fromNode.x), parseInt(fromNode.y));
+		}
 		
 		// Figure out where to draw the agent based on the fractional part of the step
 		
