@@ -99,7 +99,53 @@ var chronograph = {};
 		this.currentNode = currentNode;
 		
 		this.svgCircle = null;
+		
+		this.selected = false;
+		this.unselectedOpacity = ".25";
 	}
+	
+	Agent.prototype.select = function(agents){
+		var self = this;
+		
+		if( self.selected ){
+			// Unselect it
+			self.svgCircle.attr("stroke", "#777777");
+			self.svgCircle.attr("stroke-width", "1");
+			self.selected = false;
+			
+			var numSelected = 0;
+			for(var index in agents){
+				if( agents[index].selected == true )
+					numSelected++;
+			}
+			
+			
+			if( numSelected > 0 ){
+				self.svgCircle.attr("opacity", self.unselectedOpacity);
+			}
+			else{
+				for(var index in agents){
+					agents[index].svgCircle.attr("opacity", "1");
+				}
+			}
+			
+		}
+		else{
+			// Select it
+			self.selected = true;
+			
+			self.svgCircle.attr("stroke", "green");
+			self.svgCircle.attr("stroke-width", "2");
+			self.svgCircle.attr("opacity", "1");
+			
+			for(var index in agents){
+				var agent = agents[index];
+				if( !agent.selected ){	
+					agent.svgCircle.attr("opacity", self.unselectedOpacity);
+				}
+			}
+		}
+	};
 	
 	Agent.prototype.setPosition = function(x, y){
 		
@@ -118,15 +164,17 @@ var chronograph = {};
 		var actualStep = Math.min(step, self.steps.length);
 		
 		var fromIndex = Math.floor(actualStep);
-		if( fromIndex == self.steps.length ) fromIndex--;
 		
-		var fromNode = nodes[self.steps[fromIndex].from];
-		var toNode = nodes[self.steps[fromIndex].to];
-		var fraction = actualStep - Math.floor(actualStep);
-		var xDiff = (toNode.x - fromNode.x) * fraction;
-		var yDiff = (toNode.y - fromNode.y) * fraction;
-		
-		self.setPosition(parseInt(fromNode.x) + xDiff, parseInt(fromNode.y) + yDiff);
+		if( fromIndex != self.steps.length ){
+			
+			var fromNode = nodes[self.steps[fromIndex].from];
+			var toNode = nodes[self.steps[fromIndex].to];
+			var fraction = actualStep - Math.floor(actualStep);
+			var xDiff = (toNode.x - fromNode.x) * fraction;
+			var yDiff = (toNode.y - fromNode.y) * fraction;
+			
+			self.setPosition(parseInt(fromNode.x) + xDiff, parseInt(fromNode.y) + yDiff);
+		}
 		
 		// Figure out where to draw the agent based on the fractional part of the step
 		
@@ -154,6 +202,13 @@ var chronograph = {};
 	
 	Agent.prototype.toString = function(){
 		return "Agent(" + this.id + ")";
+	};
+	
+	Agent.prototype.equals = function(agent){
+		if( self.id == agent.id )
+			return true;
+		else
+			return false;
 	};
 
 	// Class Node
@@ -373,13 +428,19 @@ var chronograph = {};
 		for(var index in self.agents){
 			var agent = self.agents[index];
 			
-			var circle = self.agentGroup.append("circle");
-			circle.attr("id", "agent_" + agent.id)
-				  .style("cursor", "pointer")
-			     .attr("r", chronograph.agentSize)
-			     .attr("fill", "blue")
-			     .attr("stroke-width", 1)
-			     .attr("stroke", "#777777");
+			var circle = self.agentGroup.selectAll("circle#agent_" + agent.id)
+										.data([agent])
+										.enter()
+										.append("circle")
+										.attr("id", "agent_" + agent.id)
+										.style("cursor", "pointer")
+									    .attr("r", chronograph.agentSize)
+									    .attr("fill", "blue")
+									    .attr("stroke-width", 1)
+									    .attr("stroke", "#777777")
+									    .on("click", function(d){
+									    	d.select(self.agents);
+									    });
 			
 			agent.setSvg(circle);
 			agent.setPosition(agent.currentNode.x, agent.currentNode.y);
