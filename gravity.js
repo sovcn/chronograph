@@ -4,11 +4,17 @@
  * Date: 2/19/2014
  * Requirements: jQuery
  */
-
 var gravity = {};
 
 (function(){
 	
+	Object.size = function(obj) {
+	    var size = 0, key;
+	    for (key in obj) {
+	        if (obj.hasOwnProperty(key)) size++;
+	    }
+	    return size;
+	};
 	
 	// Class Controller
 	function Controller(graph, container){
@@ -156,7 +162,7 @@ var gravity = {};
 			else{
 				self.timelineContainer.slider("value", newValue);
 				self.slideCallback(self.timelineScale(newValue));
-				self.controller.settingsPanel.updateInfo();
+				self.controller.settingsPanel.updateTimestep();
 			}
 		};
 		
@@ -164,7 +170,7 @@ var gravity = {};
 			if( self.playIntHandler == null ){
 				// Play!
 				var currentValue = parseInt(self.timelineContainer.slider("value"));
-				if( currentValue == parseInt(self.timelineContainer.slider("option", "max"))){
+				if( currentValue >= parseInt(self.timelineContainer.slider("option", "max")) - .05 ){
 					self.timelineContainer.slider("value", self.sliderRange[0]);
 				}
 				self.playIntHandler = setInterval(playStep, self.playResolution);
@@ -191,7 +197,7 @@ var gravity = {};
 			slide: function(event, ui){
 				var value = $(this).slider("value");
 				self.slideCallback(self.timelineScale(value));
-				self.controller.settingsPanel.updateInfo();
+				self.controller.settingsPanel.updateTimestep();
 			}
 		});
 		
@@ -218,25 +224,102 @@ var gravity = {};
 		self.createDOM();
 	}
 	
+	Settings.prototype.updateTimestep = function(){
+		var self = this;
+		
+		var td = $("tr#current_timestamp_row td:nth-child(2)");
+		td.text(Math.ceil(self.graph.currentStep*100)/100);
+	};
+	
 	// Updates all of the information in the GUI
+	// NOT very efficient, might need to be optimized for larger graphs.
 	Settings.prototype.updateInfo = function(){
 		var self = this;
 		
-		self.timestep.text("Current Timestep: " + Math.ceil(self.graph.currentStep*100)/100);
+		var info = [
+		    {
+		    	label: "Current Timestep",
+		    	value: Math.ceil(self.graph.currentStep*100)/100,
+		    	id: "current_timestamp_row"
+		    },
+		    {
+		    	label: "Number of Nodes",
+		    	value: Object.size(self.graph.nodes)
+		    },
+		    {
+		    	label: "Number of Edges",
+		    	value: self.graph.edges.length
+		    }
+		];
+		
+		var table = d3.select("#" + self.information_table.attr("id")).html("");
+		var tbody = table.append("tbody");
+		
+		var rows = tbody.selectAll("tr")
+					 .data(info)
+					 .enter()
+					 .append("tr")
+					 .attr("id", function(row){
+						if( row.id !== undefined ){
+							return row.id;
+						} 
+						else{
+							return null;
+						}
+					 });
+		
+		var cells = rows.selectAll("td")
+						.data(function(row){
+							return [row.label, row.value];
+						})
+						.enter()
+						.append("td")
+						.text(function(d){return d;});
+		
+		
 	};
 	
 	Settings.prototype.createDOM = function(){
 		var self = this;
+		
+		self.menu = $("<div>").attr("id", "menu_panel");
+		
+		var newGraph = $("<button>").attr("id", "new_graph_button")
+									.text("New")
+									.button({
+										icons: { primary: "ui-icon-document" }
+									});
+		var loadGraph = $("<button>").attr("id", "load_graph_button")
+									.text("Load")
+									.button({
+										icons: { primary: "ui-icon-folder-collapsed" }
+									});
+		
+		var editGraph = $("<button>").attr("id", "edit_graph_button")
+									.text("Edit")
+									.button({
+										icons: { primary: "ui-icon-pencil" }
+									});
+		
+		self.menu.append(newGraph);
+		self.menu.append(loadGraph);
+		self.menu.append(editGraph);
 		
 		self.information = $("<div>").attr("id", "information_panel");
 		
 		var header = $("<h1>").attr("id", "info_header").text("Information");
 		self.information.append(header);
 		
-		self.timestep = $("<p>").attr("id", "traverse_timestep");
+		self.information_table = $("<table>").attr("id", "information_table");
+		self.information.append(self.information_table);
+		/*self.timestep = $("<p>").attr("id", "traverse_timestep");
 		self.information.append(self.timestep);
 		
+		self.numNodes = $("<p>").attr("id", "num_nodes");
+		self.information.append(self.numNodes);
+		*/
 		
+		self.container.append(self.menu);
 		self.container.append(self.information);
 	};
 	

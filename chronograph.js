@@ -440,6 +440,7 @@ var chronograph = {};
 									    .attr("stroke", "#777777")
 									    .on("click", function(d){
 									    	d.select(self.agents);
+									    	//d3.event.stopPropagation();
 									    });
 			
 			agent.setSvg(circle);
@@ -547,7 +548,8 @@ var chronograph = {};
 		
 		var unique_id = self.container.attr("id").replace("#", "");
 		self.svgContainer.attr("id", "svg_" + unique_id)
-						 .call(zoom);
+						 .call(zoom)
+						 .on("dblclick.zoom", null);
 		
 		self.graphContainer = self.svgContainer.append("g").attr("id", "graph_container");
 		
