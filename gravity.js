@@ -116,8 +116,8 @@ var gravity = {};
 		self.slideCallback = slideCallback;
 		
 		self.sliderMax = 500;
-		self.playResolution = 50; // ms
-		self.playNumSteps = 100;
+		self.playResolution = 20; // ms
+		self.playNumSteps = 500;
 		
 		self.playIntHandler = null;
 		
