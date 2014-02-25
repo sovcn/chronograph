@@ -1,3 +1,6 @@
 .project
 .settings
 .settings/*
+
+gravity/node_modules
+
