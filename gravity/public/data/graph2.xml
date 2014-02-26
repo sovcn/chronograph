@@ -1,0 +1,142 @@
+<graph>
+	<nodes>
+		<node id="g1" x="633" y="115" color="rgb(178,157,233)" label="1. Leaves" object="false" home="false">
+		<edge to="g2" />
+		<edge to="g3" />
+		</node>
+		<node id="g2" x="717" y="120" color="rgb(166,241,163)" label="2. Bullion" object="false" home="false">
+		<edge to="g1" />
+		<edge to="g4" />
+		</node>
+		<node id="g3" x="643" y="211" color="rgb(145,201,212)" label="3. Marian" object="false" home="false">
+		<edge to="g1" />
+		<edge to="g5" />
+		<edge to="g8" />
+		</node>
+		<node id="g4" x="720" y="208" color="rgb(183,189,130)" label="4. Wistful" object="false" home="false">
+		<edge to="g5" />
+		<edge to="g2" />
+		<edge to="g11" />
+		</node>
+		<node id="g5" x="684" y="267" color="rgb(177,228,218)" label="5. Scarce" object="false" home="true">
+		<edge to="g4" />
+		<edge to="g6" />
+		<edge to="g3" />
+		<edge to="g9" />
+		<edge to="g14" />
+		</node>
+		<node id="g6" x="639" y="308" color="rgb(196,144,201)" label="6. Foie" object="false" home="false">
+		<edge to="g5" />
+		<edge to="g7" />
+		<edge to="g12" />
+		</node>
+		<node id="g7" x="560" y="313" color="rgb(246,210,196)" label="7. Legally" object="false" home="false">
+		<edge to="g6" />
+		<edge to="g8" />
+		</node>
+		<node id="g8" x="554" y="221" color="rgb(181,137,199)" label="8. Strength" object="true" home="false">
+		<edge to="g7" />
+		<edge to="g3" />
+		</node>
+		<node id="g9" x="756" y="326" color="rgb(195,169,158)" label="9. Suburb" object="false" home="false">
+		<edge to="g10" />
+		<edge to="g5" />
+		<edge to="g13" />
+		</node>
+		<node id="g10" x="825" y="331" color="rgb(133,235,139)" label="10. Grimmer" object="false" home="false">
+		<edge to="g11" />
+		<edge to="g9" />
+		</node>
+		<node id="g11" x="829" y="229" color="rgb(214,175,232)" label="11. Chicken" object="false" home="false">
+		<edge to="g10" />
+		<edge to="g4" />
+		</node>
+		<node id="g12" x="654" y="402" color="rgb(140,169,151)" label="12. Oppose" object="false" home="false">
+		<edge to="g13" />
+		<edge to="g6" />
+		</node>
+		<node id="g13" x="758" y="400" color="rgb(153,253,192)" label="13. Baseball" object="false" home="false">
+		<edge to="g12" />
+		<edge to="g9" />
+		</node>
+		<node id="g14" x="436" y="276" color="rgb(248,236,236)" label="14. Trim" object="false" home="false">
+		<edge to="g15" />
+		<edge to="g16" />
+		<edge to="g20" />
+		<edge to="g21" />
+		<edge to="g5" />
+		</node>
+		<node id="g15" x="355" y="188" color="rgb(197,212,211)" label="15. Prompts" object="false" home="false">
+		<edge to="g14" />
+		<edge to="g17" />
+		</node>
+		<node id="g16" x="322" y="258" color="rgb(149,142,232)" label="16. Hoarse" object="false" home="false">
+		<edge to="g17" />
+		<edge to="g14" />
+		<edge to="g18" />
+		</node>
+		<node id="g17" x="228" y="215" color="rgb(143,227,200)" label="17. Invaded" object="false" home="false">
+		<edge to="g16" />
+		<edge to="g15" />
+		<edge to="g19" />
+		</node>
+		<node id="g18" x="240" y="316" color="rgb(152,218,156)" label="18. Diamond" object="false" home="false">
+		<edge to="g19" />
+		<edge to="g16" />
+		<edge to="g20" />
+		<edge to="g23" />
+		</node>
+		<node id="g19" x="150" y="273" color="rgb(149,219,164)" label="19. Window" object="true" home="false">
+		<edge to="g18" />
+		<edge to="g17" />
+		</node>
+		<node id="g20" x="334" y="335" color="rgb(253,253,250)" label="20. Unbound" object="false" home="false">
+		<edge to="g18" />
+		<edge to="g22" />
+		<edge to="g14" />
+		</node>
+		<node id="g21" x="361" y="423" color="rgb(195,173,192)" label="21. Locking" object="true" home="false">
+		<edge to="g22" />
+		<edge to="g14" />
+		</node>
+		<node id="g22" x="262" y="399" color="rgb(219,230,160)" label="22. Timeline" object="false" home="false">
+		<edge to="g21" />
+		<edge to="g23" />
+		<edge to="g20" />
+		</node>
+		<node id="g23" x="162" y="381" color="rgb(186,181,127)" label="23. Courage" object="false" home="false">
+		<edge to="g22" />
+		<edge to="g18" />
+		</node>
+	</nodes>
+	<traversal>
+		<agents>
+			<agent id="a1" label="10.1.1.16" start="g14">
+				<step from="g14" to="g16">353</step>
+				<step from="g16" to="g18">280</step>
+				<step from="g18" to="g20">374</step>
+				<step from="g20" to="g22">631</step>
+				<step from="g22" to="g23">396</step>
+			</agent>
+			<agent id="a2" label="10.1.1.17" start="g5">
+				<step from="g5" to="g14">353</step>
+				<step from="g14" to="g16">353</step>
+				<step from="g16" to="g18">280</step>
+				<step from="g18" to="g20">374</step>
+				<step from="g20" to="g22">631</step>
+				<step from="g22" to="g23">396</step>
+			</agent>
+			<agent id="a3" label="10.1.1.19" start="g14">
+				<step from="g14" to="g20">353</step>
+				<step from="g20" to="g22">280</step>
+				<step from="g22" to="g21">374</step>
+				<step from="g21" to="g14">631</step>
+				<step from="g14" to="g16">353</step>
+				<step from="g16" to="g18">280</step>
+				<step from="g18" to="g20">374</step>
+				<step from="g20" to="g22">631</step>
+				<step from="g22" to="g23">396</step>
+			</agent>
+		</agents>
+	</traversal>
+</graph>
