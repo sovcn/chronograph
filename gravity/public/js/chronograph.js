@@ -64,30 +64,34 @@ var chronograph = {};
 			
 		});
 		
-		data.traversal = {};
-		data.traversal.agents = {};
-		d3.select(self.xml).selectAll("agent").each(function(){
-			var agent = d3.select(this);
+		var agents = d3.select(self.xml).selectAll("agent");
+		if( agents[0].length > 0 ){
+			data.traversal = {};
+			data.traversal.agents = {};
 			
-			var attr = {};
-			attr.id = agent.attr('id');
-			attr.label = agent.attr('label');
-			attr.start = agent.attr('start');
-			
-			var steps = agent.selectAll("step");
-			var stepsArr = [];
-			steps.each(function(){
-				var step = d3.select(this);
-				var stepObj = {};
-				stepObj.from = step.attr('from');
-				stepObj.to = step.attr('to');
-				stepObj.timespan = this.textContent;
-				stepsArr.push(stepObj);
+			agents.each(function(){
+				var agent = d3.select(this);
+				
+				var attr = {};
+				attr.id = agent.attr('id');
+				attr.label = agent.attr('label');
+				attr.start = agent.attr('start');
+				
+				var steps = agent.selectAll("step");
+				var stepsArr = [];
+				steps.each(function(){
+					var step = d3.select(this);
+					var stepObj = {};
+					stepObj.from = step.attr('from');
+					stepObj.to = step.attr('to');
+					stepObj.timespan = this.textContent;
+					stepsArr.push(stepObj);
+				});
+				attr.steps = stepsArr;
+				
+				data.traversal.agents[attr.id] = attr;
 			});
-			attr.steps = stepsArr;
-			
-			data.traversal.agents[attr.id] = attr;
-		});
+		}
 		
 		return data;
 	};
@@ -333,6 +337,7 @@ var chronograph = {};
 		self.data = data;
 		self.format = format;
 		self.traverse = null;
+		self.mode = "view";
 		
 	}
 
@@ -371,7 +376,7 @@ var chronograph = {};
 			self.parsedData = xmlDoc.parse();
 		}
 
-		if( self.parsedData.traversal != undefined && self.parsedData.traversal != null ){
+		if( self.parsedData.traversal != undefined && self.parsedData.traversal ){
 			self.traverse = true;
 		}
 		else{
@@ -679,7 +684,41 @@ var chronograph = {};
 		}
 	};
 	
-	chronograph.parseXml = function(xml){
+	chronograph.parseXml = function(xmlStr){
+		
+		// https://gist.github.com/stevenaw/1305672
+		function textToXML ( text ) {
+		      try {
+		        var xml = null;
+		        
+		        if ( window.DOMParser ) {
+		 
+		          var parser = new DOMParser();
+		          xml = parser.parseFromString( text, "text/xml" );
+		          
+		          var found = xml.getElementsByTagName( "parsererror" );
+		 
+		          if ( !found || !found.length || !found[ 0 ].childNodes.length ) {
+		            return xml;
+		          }
+		 
+		          return null;
+		        } else {
+		 
+		          xml = new ActiveXObject( "Microsoft.XMLDOM" );
+		 
+		          xml.async = false;
+		          xml.loadXML( text );
+		 
+		          return xml;
+		        }
+		      } catch ( e ) {
+		        // suppress
+		      }
+		    }
+		
+		
+		var xml = textToXML(xmlStr);
 		var doc = new XmlDocument(xml);
 		try{
 			var json = doc.parse();

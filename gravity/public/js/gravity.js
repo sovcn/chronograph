@@ -54,6 +54,7 @@ var gravity = {};
 		}
 		
 		self.graphContainer.html('');
+		self.topController.html('');
 		self.graph.draw("#" + self.graphContainer.attr('id'));
 		
 		if( self.graph.traverse ){
@@ -201,7 +202,6 @@ var gravity = {};
 			else{
 				self.timelineContainer.slider("value", newValue);
 				self.slideCallback(self.timelineScale(newValue));
-				self.controller.settingsPanel.updateTimestep();
 			}
 		};
 		
@@ -236,7 +236,6 @@ var gravity = {};
 			slide: function(event, ui){
 				var value = $(this).slider("value");
 				self.slideCallback(self.timelineScale(value));
-				self.controller.settingsPanel.updateTimestep();
 			}
 		});
 		
@@ -262,13 +261,6 @@ var gravity = {};
 		
 		self.createDOM();
 	}
-	
-	/*Settings.prototype.updateTimestep = function(){
-		var self = this;
-		
-		var td = $("tr#current_timestamp_row td:nth-child(2)");
-		td.text(Math.ceil(self.graph.currentStep*100)/100);
-	};*/
 	
 	// Updates all of the information in the GUI
 	// NOT very efficient, might need to be optimized for larger graphs.
@@ -339,6 +331,8 @@ var gravity = {};
 		}
 		else if(mode == "view"){
 			self.controller.setMode(mode);
+			self.newGraphButton.show();
+			self.loadGraphButton.show();
 			self.editGraphButton.show();
 			self.editGraphButton.attr("class", "");
 			self.saveGraphButton.hide();
@@ -346,6 +340,8 @@ var gravity = {};
 		}
 		else if( mode == "edit" ){
 			self.controller.setMode(mode);
+			self.newGraphButton.hide();
+			self.loadGraphButton.hide();
 			self.editGraphButton.hide();
 			self.saveGraphButton.show();
 			self.editMenu.show();
@@ -502,7 +498,7 @@ var gravity = {};
 			
 			var form;
 			var infoField;
-			var dataField;
+			var importField;
 			var formatField;
 
 
@@ -512,12 +508,13 @@ var gravity = {};
 				width: 600,
 				height: 800,
 				open: function(){
+					
 					dialogContainer.load('dialog/importGraph.html', function(){
 						console.log("Loading dialog for Import Graph.");
 						
 						form = $("#form");
 						infoField = $("#dialog_graph_info");
-						datafield = $("#dataField");
+						importField = $("#dataField");
 						
 						formatField = $("#formatRadioSet").buttonset();
 
@@ -525,6 +522,47 @@ var gravity = {};
 				},
 				buttons:{
 					"Import": function(){
+						importField.removeClass( "ui-state-error" );
+						
+						var data = importField.val();
+						
+						formatField.buttonset("refresh");
+						var formatId = $("#" + formatField.attr("id") + " :radio:checked").attr('id');
+						if( formatId == "jsonRadio" ){
+							// DO nothing, already the correct format
+						}
+						else if (formatId == "xmlRadio"){
+							data = JSON.stringify(chronograph.parseXml(data));
+						}
+						else{
+							infoField.text("Invalid format specified, please try again.");
+							console.error("Invalid format specified.");
+						}
+						
+						var graph = {};
+						graph._id = self.controller.graph.id;
+						graph.name = self.controller.graph.name;
+						graph.data = data;
+						
+						var jqxhr = $.ajax(
+								{url: "api/graphs/" + graph._id, 
+								 data: graph,
+								 type: "PUT",
+								 success: function(data, textStatus, jqXHR){
+										console.log("Post response:"); console.dir(data);
+										var graphObj = chronograph.newGraph(data._id, data.name, JSON.parse(data.data), chronograph.data.JSON);
+
+										self.controller.setGraph(graphObj);
+										self.controller.draw();
+										self.setMode("view");
+										dialogContainer.html('');
+										self.importDialog.dialog("close");
+									}
+								});
+						jqxhr.fail(function(){
+							console.error("Unable to create new graph.  Unknown error.");
+							infoField.text("An unknown error has ocurred.  Please try refreshing the page.");
+						});
 						
 					},
 					 Cancel: function() {
