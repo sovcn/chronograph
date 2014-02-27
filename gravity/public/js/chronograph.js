@@ -679,4 +679,16 @@ var chronograph = {};
 		}
 	};
 	
+	chronograph.parseXml = function(xml){
+		var doc = new XmlDocument(xml);
+		try{
+			var json = doc.parse();
+			return json;
+		}
+		catch(e){
+			console.log("Invalid XML format.");
+			return null;
+		}
+	};
+	
 })();

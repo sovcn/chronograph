@@ -339,35 +339,33 @@ var gravity = {};
 		}
 		else if(mode == "view"){
 			self.controller.setMode(mode);
+			self.editGraphButton.show();
+			self.editGraphButton.attr("class", "");
+			self.saveGraphButton.hide();
+			self.editMenu.hide();
 		}
 		else if( mode == "edit" ){
 			self.controller.setMode(mode);
-			self.editGraphButton.click(null);
+			self.editGraphButton.hide();
+			self.saveGraphButton.show();
+			self.editMenu.show();
 		}
 		else{
 			console.error("Invalid mode. Aborting.");
 			return false;
 		}
 	};
-
-	Settings.prototype.createDOM = function(){
+	
+	Settings.prototype.initializeDialogs = function(){
 		var self = this;
 		
-		self.menu = $("<table>").attr("id", "menu_panel")
-								.attr("height", self.topControllerHeight)
-								.attr("width", "100%");
-
-		var row = $("<tr>");
-		self.menu.append(row);
-
-
-		var createDialog = $("<div>").attr("id", "create_dialog").attr("title", "Create New Graph").attr("class", "dialog");
+		self.createDialog = $("<div>").attr("id", "create_dialog").attr("title", "Create New Graph").attr("class", "dialog");
 
 		// Maintain scope
 		(function(){
 			var dialogContainer = $("<div>");
 
-			createDialog.append(dialogContainer);
+			self.createDialog.append(dialogContainer);
 			var infoField;
 			var nameField;
 
@@ -391,7 +389,8 @@ var gravity = {};
 									self.controller.setGraph(graphObj);
 									self.controller.draw();
 									self.setMode("edit");
-									createDialog.dialog("close");
+									dialogContainer.html('');
+									self.createDialog.dialog("close");
 								});
 					jqxhr.fail(function(){
 						console.error("Unable to create new graph.  Unknown error.");
@@ -400,7 +399,7 @@ var gravity = {};
 				}
 			};
 
-			createDialog.dialog({
+			self.createDialog.dialog({
 				autoOpen: false,
 				modal: true,
 				open: function(){
@@ -413,6 +412,7 @@ var gravity = {};
 				buttons:{
 					"Create a Graph": createGraphFunction,
 					 Cancel: function() {
+						 dialogContainer.html('');
 						$( this ).dialog( "close" );
 					}
 				},
@@ -424,16 +424,16 @@ var gravity = {};
 
 
 
-		var loadDialog = $("<div>").attr("id", "load_dialog").attr("title", "Load Existing Graph").attr("class", "dialog");
+		self.loadDialog = $("<div>").attr("id", "load_dialog").attr("title", "Load Existing Graph").attr("class", "dialog");
 
 		// Maintain scope
 		(function(){
 			var dialogContainer = $("<div>");
-			loadDialog.append(dialogContainer);
+			self.loadDialog.append(dialogContainer);
 			var infoField;
 
 
-			loadDialog.dialog({
+			self.loadDialog.dialog({
 				autoOpen: false,
 				modal: true,
 				width: 600,
@@ -466,10 +466,12 @@ var gravity = {};
 														self.controller.setGraph(graphObj);
 														self.controller.draw();
 														self.setMode("view");
-														loadDialog.dialog("close");
-													});
+														dialogContainer.html('');
+														self.loadDialog.dialog("close")
+													})
+													.attr("class", "graph_dialog_item");
 
-									var td = rows.selectAll('td')
+									var td = rows.selectAll('td') 
 													.data(function(d){
 														var date = new Date(d.modified);
 														return [d.name, date];
@@ -489,49 +491,118 @@ var gravity = {};
 				}
 			});
 		})();
+		
+		
+		self.importDialog = $("<div>").attr("id", "import_dialog").attr("title", "Import Graph Data").attr("class", "dialog");
+
+		// Maintain scope
+		(function(){
+			var dialogContainer = $("<div>");
+			self.importDialog.append(dialogContainer);
+			
+			var form;
+			var infoField;
+			var dataField;
+			var formatField;
 
 
+			self.importDialog.dialog({
+				autoOpen: false,
+				modal: true,
+				width: 600,
+				height: 800,
+				open: function(){
+					dialogContainer.load('dialog/importGraph.html', function(){
+						console.log("Loading dialog for Import Graph.");
+						
+						form = $("#form");
+						infoField = $("#dialog_graph_info");
+						datafield = $("#dataField");
+						
+						formatField = $("#formatRadioSet").buttonset();
+
+					});
+				},
+				buttons:{
+					"Import": function(){
+						
+					},
+					 Cancel: function() {
+						 dialogContainer.html('');
+						$( this ).dialog( "close" );
+					}
+				},
+				 close: function() {
+					dataField.val( "" ).removeClass( "ui-state-error" );
+				}
+			});
+		})();
+	};
+
+	Settings.prototype.createDOM = function(){
+		var self = this;
+		
+		self.menu = $("<table>").attr("id", "menu_panel")
+								.attr("height", self.topControllerHeight)
+								.attr("width", "100%");
+
+		var row = $("<tr>");
+		self.menu.append(row);
+
+
+		self.initializeDialogs();
 
 		self.newGraphButton = $("<td>").attr("id", "new_graph_button")
 								.append($("<span>").text("Create"))
 								.click(function(){
-									createDialog.dialog("open");
+									self.createDialog.dialog("open");
 								});
 
 		self.loadGraphButton = $("<td>").attr("id", "load_graph_button")
 								.append($("<span>").text("Load"))
 								.click(function(){
-									loadDialog.dialog("open");
+									self.loadDialog.dialog("open");
 								});
 
 		self.editGraphButton = $("<td>").attr("id", "edit_graph_button")
 								 .attr("class", "disabled")
-								 .append($("<span>").text("Edit"));
-
+								 .append($("<span>").text("Edit"))
+								 .click(function(){
+									self.setMode("edit"); 
+								 });
+		
+		self.saveGraphButton = $("<td>").attr("id", "save_graph_button")
+									 .css("display", "none")
+									 .append($("<span>").text("Save"))
+									 .click(function(){
+										// Save the graph
+										 
+										 self.setMode("view");
+									 });
+		
 		row.append(self.newGraphButton);
 		row.append(self.loadGraphButton);
 		row.append(self.editGraphButton);
+		row.append(self.saveGraphButton);
+		
+		
+		self.editMenu = $("<div>").attr("id", "edit_menu")
+								  .css("display", "none");
+		
+		var importLink = $("<a>").attr("id", "import_graph_link")
+							 .text("Import Graph")
+							 .attr("href", "#")
+							 .click(function(){
+								 self.importDialog.dialog("open");
+								 return false;
+							 });
+		
+		self.editMenu.append(importLink);
+		
 
-
-		var newGraphEvent = function(){
-			$.post("api/graphs", {
-				"name": "Graph 1",
-				"data": '{ "nodes": { "g0": { "id": "g0", "x": 767, "y": 110, "color": "#faa", "label": "0", "edges": ["g1", "g2", "g3"] }, "g1": { "id": "g1", "x": 501, "y": 360, "color": "#faf", "label": "1", "edges": ["g0", "g2", "g3"] }, "g2": { "id": "g2", "x": 1062, "y": 335, "color": "#8af", "label": "2", "edges": ["g1", "g0"] }, "g3": { "id": "g3", "x": 768, "y": 255, "color": "#aaf", "label": "3", "edges": ["g0", "g1"] } }, "traversal": { "agents": { "a1": { "id": "a1", "label": "10.1.1.16", "start": "g0", "steps": [ {"from": "g0", "to": "g1", "timespan": 350}, {"from": "g1", "to": "g3", "timespan": 400}, {"from": "g3", "to": "g0", "timespan": 324}, {"from": "g0", "to": "g2", "timespan": 800} ] }, "a2": { "id": "a2", "label": "10.1.1.17", "start": "g1", "steps": [ {"from": "g1", "to": "g0", "timespan": 350}, {"from": "g0", "to": "g3", "timespan": 400}, {"from": "g3", "to": "g1", "timespan": 324}, {"from": "g1", "to": "g2", "timespan": 800} ] } } } }'
-			},
-			function(data, textStatus, jqXHR){
-				console.log("Post resposne:"); console.dir(data);
-			});
-		};
-
-		var loadGraphEvent = function(){
-			console.log("testing");
-			$.get("api/graphs", function(data){
-				console.dir(data);
-			});
-		};
 
 		self.container.append(self.menu);
-		
+		self.container.append(self.editMenu);
 		/*var newGraph = $("<button>").attr("id", "new_graph_button")
 									.text("New")
 									.button({
