@@ -375,7 +375,9 @@ var gravity = {};
 					console.log("Create Graph.");
 					var graph = {};
 					graph.name = nameField.val();
-					graph.data = "{}";
+					graph.data = {};
+					graph.data.nodes = {};
+					graph.data = JSON.stringify(graph.data);
 
 					var jqxhr = $.post("api/graphs", graph,
 								function(data, textStatus, jqXHR){
@@ -614,8 +616,29 @@ var gravity = {};
 									 .append($("<span>").text("Save"))
 									 .click(function(){
 										// Save the graph
-										 
-										 self.setMode("view");
+										
+										 var graph = {};
+										graph._id = self.controller.graph.id;
+										graph.name = self.controller.graph.name;
+										graph.data = JSON.stringify(self.controller.graph.exportData());
+										
+										
+										var jqxhr = $.ajax(
+												{url: "api/graphs/" + graph._id, 
+												 data: graph,
+												 type: "PUT",
+												 success: function(data, textStatus, jqXHR){
+														console.log("Saving Graph. Post response:"); console.dir(data);
+														var graphObj = chronograph.newGraph(data._id, data.name, JSON.parse(data.data), chronograph.data.JSON);
+
+														self.controller.setGraph(graphObj);
+														self.controller.draw();
+														self.setMode("view");
+													}
+												});
+										jqxhr.fail(function(){
+											console.error("Unable to save graph.  Unknown error.");
+										});
 									 });
 		
 		row.append(self.newGraphButton);

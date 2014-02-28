@@ -110,6 +110,18 @@ var chronograph = {};
 		this.unselectedOpacity = ".25";
 	}
 	
+	Agent.prototype.exportObj = function(){
+		var self = this;
+		
+		var obj = {};
+		obj.id = self.id;
+		obj.start = self.start;
+		obj.label = self.label;
+		obj.steps = self.steps;
+		
+		return obj;
+	};
+	
 	Agent.prototype.select = function(agents){
 		var self = this;
 		
@@ -264,6 +276,20 @@ var chronograph = {};
 		}
 	};
 	
+	Node.prototype.exportObj = function(){
+		var self = this;
+		var obj = {};
+		obj.id = self.id;
+		obj.x = self.x;
+		obj.y = self.y;
+		obj.color = self.color;
+		obj.label = self.label;
+		
+		obj.edges = d3.keys(self.edges);
+		
+		return obj;
+	}
+	
 	Node.prototype.equals = function(node){
 		if( this.id == node.id ){
 			return true;
@@ -339,6 +365,14 @@ var chronograph = {};
 		self.traverse = null;
 		self.mode = "view";
 		
+		
+		self.nodeId = 1;
+		self.numColors = 20;
+		self.colors = d3.scale.category20();
+		
+		self.currentTranslate = [0,0];
+		self.currentScale = 1;
+		
 	}
 
 	Graph.prototype.setMode = function(mode){
@@ -348,11 +382,14 @@ var chronograph = {};
 
 		}
 		else if(mode == "view"){
-
+			console.log("Setting graph to view mode.");
+			self.mode = mode;
+			self.svgContainer.style("cursor", "move");
 		}
 		else if( mode == "edit" ){
 			console.log("Setting graph to edit mode.");
 			self.mode = mode;
+			self.svgContainer.style("cursor", "crosshair");
 		}
 		else{
 			console.error("Invalid mode. Aborting.");
@@ -520,6 +557,30 @@ var chronograph = {};
 		}
 	};
 	
+	Graph.prototype.exportData = function(){
+		var self = this;
+		
+		var data = {};
+		data.nodes = {};
+		
+		for(var index in self.nodes){
+			var node = self.nodes[index].exportObj();
+			data.nodes[node.id] = node;
+		}
+		
+		if( d3.keys(self.agents).length > 0 ){
+			data.traversal = {};
+			data.traversal.agents = {};
+			
+			for( var index in self.agents ){
+				var agent = self.agents[index].exportObj();
+				data.traversal.agents[agent.id] = agent;
+			}
+		}
+		
+		return data;
+	};
+	
 	// This function might need to be optimized later for large graphs.  Went with readability over performance for now.
 	Graph.prototype.initializeGraphData = function(){
 		var self = this;
@@ -577,6 +638,41 @@ var chronograph = {};
 			throw new ChronographException(message);
 		}
 	};
+	
+	Graph.prototype.addNode = function(node, behavior){
+		var self = this;
+		
+		if( node ){
+			self.parsedData.nodes[node.id] = node.exportObj();
+			self.nodes[node.id] = node;
+			
+			var group = self.nodeGroup.append("g");
+			group.attr("id", "node_" + node.id);
+			
+			var circle = group.selectAll("circle")
+							  .data([node])
+							  .enter()
+							  .append("circle")
+							  .attr("id", "node_" + node.id + "_circle")
+							  .attr("r", chronograph.nodeSize)
+							  .attr("cx", node.x)
+							  .attr("cy", node.y)
+							  .attr("fill", node.color)
+							  .attr("stroke-width", 1)
+							  .attr("stroke", "#777777")
+							  .attr("cursor", "move")
+							  .call(behavior);
+			
+			var label = group.append("text");
+			label.attr("id", "node_" + node.id + "_label");
+			
+			node.setSvg(group, label, circle);
+		}
+		else {
+			console.error("Must add a valid node.");
+			throw new ChronographException("Invalid node - cannot add to graph: " + node);
+		}
+	};
 
 	
 	Graph.prototype.initializeContainerDOM = function(){
@@ -587,27 +683,7 @@ var chronograph = {};
 				    .on("zoom", zoomed);
 		
 		
-		self.svgContainer = self.container.append("svg");
-
-		var graphInfo = self.svgContainer.append("g").attr("class", "info-group");
-		self.graphName = graphInfo.append("text").attr("x", chronograph.infoOffsetX).attr("y", chronograph.infoOffsetY).text(self.name).attr("id", "graph_name");
 		
-		var unique_id = self.container.attr("id").replace("#", "");
-		self.svgContainer.attr("id", "svg_" + unique_id)
-						 .call(zoom)
-						 .on("dblclick.zoom", null);
-		
-		self.graphContainer = self.svgContainer.append("g").attr("id", "graph_container");
-		
-		// Lines first so they are under the nodes visually
-		self.lineGroup = self.graphContainer.append("g").attr("class", "line-group");
-		self.nodeGroup = self.graphContainer.append("g").attr("class", "node-group");
-
-		
-		function zoomed() {
-			self.graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-		}
-
 		function dragstarted(d) {
 		  d3.event.sourceEvent.stopPropagation();
 		  d3.select(this).classed("dragging", true);
@@ -629,6 +705,49 @@ var chronograph = {};
 				    .on("dragstart", dragstarted)
 				    .on("drag", dragged)
 				    .on("dragend", dragended);
+		
+		
+		var click = function(container){
+			console.log("clicked: " + d3.event.x + ", " + d3.event.y);
+			var id = "chronograph" + self.nodeId;
+			var color = self.colors((self.nodeId-1)%self.numColors);
+			
+			var x = (d3.mouse(container)[0] - self.currentTranslate[0]) / self.currentScale;
+			var y = (d3.mouse(container)[1] - self.currentTranslate[1]) / self.currentScale;
+			var node = new Node(id, x, y, color, "Node " + self.nodeId);
+			
+			self.nodeId++;
+			
+			self.addNode(node, drag);
+		}
+		
+		self.svgContainer = self.container.append("svg");
+
+		var graphInfo = self.svgContainer.append("g").attr("class", "info-group");
+		self.graphName = graphInfo.append("text").attr("x", chronograph.infoOffsetX).attr("y", chronograph.infoOffsetY).text(self.name).attr("id", "graph_name");
+		
+		var unique_id = self.container.attr("id").replace("#", "");
+		self.svgContainer.attr("id", "svg_" + unique_id)
+						 .call(zoom)
+						 .on("click", function(){
+							 if( self.mode == "edit" ){
+								 click(this);
+							 }
+						 })
+						 .on("dblclick.zoom", null);
+		
+		self.graphContainer = self.svgContainer.append("g").attr("id", "graph_container");
+		
+		// Lines first so they are under the nodes visually
+		self.lineGroup = self.graphContainer.append("g").attr("class", "line-group");
+		self.nodeGroup = self.graphContainer.append("g").attr("class", "node-group");
+
+		
+		function zoomed() {
+			self.currentTranslate = d3.event.translate;
+			self.currentScale = d3.event.scale;
+			self.graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+		}
 		
 		
 		for(var index in self.nodes){
