@@ -13,7 +13,7 @@ ChronoGraph is a JavaScript library for generating graph visualizations from tem
 # Installation
 
 **Requirement**
-You must install [D3] (d3js.org) in your application before running CronoGraph
+You must install [D3] (d3js.org) in your application before running ChronoGraph
 
 Clone a copy of ChronoGraph by running:
 
