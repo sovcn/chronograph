@@ -244,6 +244,8 @@ var chronograph = {};
 		this.svgGroup = null;
 		this.svgLabel = null;
 		this.svgCircle = null;
+
+		this.selected = false;
 		
 		// Maps id => Edge where Edge is the edge connecting this node to the node with id
 		this.edges = {};
@@ -275,6 +277,16 @@ var chronograph = {};
 			}
 		}
 	};
+	
+	Node.prototype.select = function(){
+		this.selected = true;
+		this.svgCircle.classed("selected", true);
+	};
+	
+	Node.prototype.unselect = function(){
+		this.selected = false;
+		this.svgCircle.classed("selected", false);
+	}
 	
 	Node.prototype.exportObj = function(){
 		var self = this;
@@ -373,6 +385,11 @@ var chronograph = {};
 		self.currentTranslate = [0,0];
 		self.currentScale = 1;
 		
+		self.currentStep = 0;
+		self.maxSteps = 0;
+		
+		self.selectedNode = null;
+		
 	}
 
 	Graph.prototype.setMode = function(mode){
@@ -385,11 +402,13 @@ var chronograph = {};
 			console.log("Setting graph to view mode.");
 			self.mode = mode;
 			self.svgContainer.style("cursor", "move");
+			d3.selectAll("circle.graph-node").style("cursor", "pointer");
 		}
 		else if( mode == "edit" ){
 			console.log("Setting graph to edit mode.");
 			self.mode = mode;
 			self.svgContainer.style("cursor", "crosshair");
+			d3.selectAll("circle.graph-node").style("cursor", "move");
 		}
 		else{
 			console.error("Invalid mode. Aborting.");
@@ -400,10 +419,6 @@ var chronograph = {};
 	Graph.prototype.draw = function(cont){
 		var self = this;
 		// Whether or not traverse data is included with this graph
-		
-		self.currentStep = 0;
-		self.maxSteps = 0;
-		
 		if(self.format == chronograph.data.JSON){
 			self.parsedData = self.data;
 		}
@@ -474,30 +489,8 @@ var chronograph = {};
 		for(var index in self.agents){
 			self.agents[index].setToTimeStep(step, self.nodes);
 		}
-	};
-	
-	Graph.prototype.arbitraryTimeStep = function(animate, step){
-		var self = this;
 		
-		if( step === undefined ){
-			step = self.currentStep + 1;
-		}
-		
-		if( step === undefined ){
-			animate = false;
-		}
-		
-		self.currentStep = step;
-		
-		for( var index in self.agents ){
-			var agent = self.agents[index];
-			if( self.currentStep > agent.steps.length ){
-				continue; // This agent is done.
-			}
-			var agentStep = agent.steps[self.currentStep-1];
-			var toNode = self.nodes[agentStep.to];
-			agent.moveToNode(toNode, animate);
-		}
+		self.graphTimestep.text("Timestep: " + Math.round(step*100)/100);
 	};
 	
 	Graph.prototype.initializeAgentDOM = function(){
@@ -520,7 +513,7 @@ var chronograph = {};
 									    .attr("stroke", "#777777")
 									    .on("click", function(d){
 									    	d.select(self.agents);
-									    	//d3.event.stopPropagation();
+											d3.event.stopPropagation();
 									    });
 			
 			agent.setSvg(circle);
@@ -654,6 +647,7 @@ var chronograph = {};
 							  .enter()
 							  .append("circle")
 							  .attr("id", "node_" + node.id + "_circle")
+							  .attr("class", "graph-node")
 							  .attr("r", chronograph.nodeSize)
 							  .attr("cx", node.x)
 							  .attr("cy", node.y)
@@ -661,7 +655,11 @@ var chronograph = {};
 							  .attr("stroke-width", 1)
 							  .attr("stroke", "#777777")
 							  .attr("cursor", "move")
-							  .call(behavior);
+							  .call(behavior)
+							  .on("click", function(d){
+								  self.selectNode(d);
+								  d3.event.stopPropagation(); // Prevent clicking a node from activating svg.click
+							  });
 			
 			var label = group.append("text");
 			label.attr("id", "node_" + node.id + "_label");
@@ -671,6 +669,20 @@ var chronograph = {};
 		else {
 			console.error("Must add a valid node.");
 			throw new ChronographException("Invalid node - cannot add to graph: " + node);
+		}
+	};
+	
+	Graph.prototype.selectNode = function(node){
+		var self = this;
+		
+		if( node.selected ){
+			node.unselect();
+		}
+		else{
+			for(var index in self.nodes){
+				self.nodes[index].unselect();
+			}
+			node.select();
 		}
 	};
 
@@ -686,16 +698,21 @@ var chronograph = {};
 		
 		function dragstarted(d) {
 		  d3.event.sourceEvent.stopPropagation();
-		  d3.select(this).classed("dragging", true);
+		  //d3.select(this).classed("selected", true);
+		  
 		}
 
 		function dragged(d) {
-		  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
-		  self.nodes[d.id].setPosition(d.x,d.y, self.agents, self);
+		  if( self.mode == "edit" ){
+			  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+			  self.nodes[d.id].setPosition(d.x,d.y, self.agents, self);
+			}
+		  d3.event.sourceEvent.stopPropagation();
 		}
 
 		function dragended(d) {
-		  d3.select(this).classed("dragging", false);
+		  //d3.select(this).classed("selected", false);
+		  d3.event.sourceEvent.stopPropagation();
 		}
 		
 		var drag = d3.behavior.drag()
@@ -722,9 +739,6 @@ var chronograph = {};
 		}
 		
 		self.svgContainer = self.container.append("svg");
-
-		var graphInfo = self.svgContainer.append("g").attr("class", "info-group");
-		self.graphName = graphInfo.append("text").attr("x", chronograph.infoOffsetX).attr("y", chronograph.infoOffsetY).text(self.name).attr("id", "graph_name");
 		
 		var unique_id = self.container.attr("id").replace("#", "");
 		self.svgContainer.attr("id", "svg_" + unique_id)
@@ -763,12 +777,17 @@ var chronograph = {};
 							  .enter()
 							  .append("circle")
 							  .attr("id", "node_" + node.id + "_circle")
+							  .attr("class", "graph-node")
 							  .attr("r", chronograph.nodeSize)
 							  .attr("fill", node.color)
 							  .attr("stroke-width", 1)
 							  .attr("stroke", "#777777")
 							  .attr("cursor", "move")
-							  .call(drag);
+							  .call(drag)
+							  .on("click", function(d){
+								  self.selectNode(d);
+								  d3.event.stopPropagation();
+							  });
 			
 			var label = group.append("text");
 			label.attr("id", "node_" + node.id + "_label");
@@ -785,6 +804,26 @@ var chronograph = {};
 			
 			edge.setSvg(line);
 		}
+		
+		
+		self.initializeInfoDOM();
+	};
+	
+	
+	Graph.prototype.initializeInfoDOM = function(){
+		var self = this;
+		
+		var graphInfo = self.svgContainer.append("g").attr("class", "info-group");
+		self.graphName = graphInfo.append("text").attr("x", chronograph.infoOffsetX).attr("y", chronograph.infoOffsetY).text(self.name).attr("id", "graph_name");
+		
+		if( self.traverse ){
+			self.graphTimestep = graphInfo.append("text").attr("x", chronograph.infoOffsetX).attr("y", chronograph.infoOffsetY+20).text("Timestep: " + self.currentStep).attr("id", "graph_timestep");
+		}
+		
+		var nodeInfo = graphInfo.append("g").attr("class", "node-info-group");
+		var widthOffset = parseInt(self.svgContainer.attr("width"));
+		self.svgNodeName = nodeInfo.append("text").attr("x", widthOffset).attr("y", 200).attr("text-anchor", "end").text("testing");
+		
 		
 	};
 	

@@ -336,6 +336,7 @@ var gravity = {};
 			self.editGraphButton.show();
 			self.editGraphButton.attr("class", "");
 			self.saveGraphButton.hide();
+			self.cancelEditButton.hide();
 			self.editMenu.hide();
 		}
 		else if( mode == "edit" ){
@@ -344,6 +345,7 @@ var gravity = {};
 			self.loadGraphButton.hide();
 			self.editGraphButton.hide();
 			self.saveGraphButton.show();
+			self.cancelEditButton.show();
 			self.editMenu.show();
 		}
 		else{
@@ -641,10 +643,33 @@ var gravity = {};
 										});
 									 });
 		
+		self.cancelEditButton = $("<td>").attr("id", "cancel_edit_button")
+		 .css("display", "none")
+		 .append($("<span>").text("Cancel"))
+		 .click(function(){
+			 	// Load unmodified graph from database.			
+				var jqxhr = $.ajax(
+						{url: "api/graphs/" + self.controller.graph.id,
+						 type: "GET",
+						 success: function(data, textStatus, jqXHR){
+								console.log("Fetching unmodified Graph. Post response:"); console.dir(data);
+								var graphObj = chronograph.newGraph(data._id, data.name, JSON.parse(data.data), chronograph.data.JSON);
+
+								self.controller.setGraph(graphObj);
+								self.controller.draw();
+								self.setMode("view");
+							}
+						});
+				jqxhr.fail(function(){
+					console.error("Unable to save graph.  Unknown error.");
+				});
+		 });
+		
 		row.append(self.newGraphButton);
 		row.append(self.loadGraphButton);
 		row.append(self.editGraphButton);
 		row.append(self.saveGraphButton);
+		row.append(self.cancelEditButton);
 		
 		
 		self.editMenu = $("<div>").attr("id", "edit_menu")
