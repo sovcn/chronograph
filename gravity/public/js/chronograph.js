@@ -403,12 +403,16 @@ var chronograph = {};
 			self.mode = mode;
 			self.svgContainer.style("cursor", "move");
 			d3.selectAll("circle.graph-node").style("cursor", "pointer");
+
+			//self.graphToolbar.attr("visibility", "hidden");
 		}
 		else if( mode == "edit" ){
 			console.log("Setting graph to edit mode.");
 			self.mode = mode;
 			self.svgContainer.style("cursor", "crosshair");
 			d3.selectAll("circle.graph-node").style("cursor", "move");
+
+			//self.graphToolbar.attr("visibility", "visible");
 		}
 		else{
 			console.error("Invalid mode. Aborting.");
@@ -725,8 +729,11 @@ var chronograph = {};
 		
 		
 		var click = function(container){
-			console.log("clicked: " + d3.event.x + ", " + d3.event.y);
+			//console.log("clicked: " + d3.event.x + ", " + d3.event.y);
 			var id = "chronograph" + self.nodeId;
+			while( d3.keys(self.nodes).indexOf(id) >= 0 ){
+				id = "chronograph" + (++self.nodeId);
+			}
 			var color = self.colors((self.nodeId-1)%self.numColors);
 			
 			var x = (d3.mouse(container)[0] - self.currentTranslate[0]) / self.currentScale;
@@ -807,6 +814,8 @@ var chronograph = {};
 		
 		
 		self.initializeInfoDOM();
+
+		self.initializeToolbarDOM();
 	};
 	
 	
@@ -822,9 +831,54 @@ var chronograph = {};
 		
 		var nodeInfo = graphInfo.append("g").attr("class", "node-info-group");
 		var widthOffset = parseInt(self.svgContainer.attr("width"));
-		self.svgNodeName = nodeInfo.append("text").attr("x", widthOffset).attr("y", 200).attr("text-anchor", "end").text("testing");
+		self.svgNodeName = nodeInfo.append("text").attr("x", 400).attr("y", 200).attr("text-anchor", "end").text("testing");
 		
 		
+	};
+
+	Graph.prototype.initializeToolbarDOM = function(){
+		var self = this;
+
+		self.graphToolbar = self.svgContainer.append("g").attr("class", "toolbar-group");
+		//self.graphToolbar.attr("visibility", "hidden");
+
+		var addNodeButton = self.graphToolbar.append("g");
+
+		var buttonSize = 40;
+
+		var newButton = function(group){
+			return group.append("rect")
+					.attr("x", 0)
+					.attr("y", 0)
+					.attr("width", buttonSize)
+					.attr("height", buttonSize)
+					.attr("rx", 5)
+					.attr("ry", 5)
+					.attr("fill", "#DDDDDD")
+					.attr("stroke", "#999999")
+					.attr("stroke-width", 1);
+		};
+
+		var addNodeButton = self.graphToolbar.append("g");
+		var addBack = newButton(addNodeButton);
+		var addIcon = addNodeButton.append("circle")
+									.attr("cx", buttonSize/2)
+									.attr("cy", buttonSize/2)
+									.attr("r", chronograph.nodeSize)
+									.attr("stroke", "#777777")
+									.attr("fill", "#ffbb78");
+
+		var deleteNodeButton = self.graphToolbar.append("g");
+		var deleteBack = newButton(deleteNodeButton);
+		deleteNodeButton.attr("transform", "translate(0, " + (buttonSize + 10) + ")");
+
+		var addEdgeButton = self.graphToolbar.append("g");
+		var addEdgeBack = newButton(addEdgeButton);
+		addEdgeButton.attr("transform", "translate(0, " + 2*(buttonSize + 10) + ")");
+
+		self.graphToolbar.attr("transform", "translate(20,200)");
+
+
 	};
 	
 	
