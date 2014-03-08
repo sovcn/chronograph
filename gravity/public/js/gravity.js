@@ -58,12 +58,16 @@ var gravity = {};
 		self.graph.draw("#" + self.graphContainer.attr('id'));
 		
 		if( self.graph.traverse ){
+			self.topController.show();
 			var graphRange = [0, self.graph.maxSteps];
 			
 			self.timeline = new Timeline(self, [0,500], graphRange, function(value){
 				self.graph.setArbitraryTimeStep(value);
 			});
 			self.timeline.draw(self.topController);
+		}
+		else{
+			self.topController.hide();
 		}
 		
 		setSizes(self);

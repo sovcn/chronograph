@@ -261,6 +261,20 @@ var chronograph = {};
 		this.svgCircle = circle;
 	};
 	
+	Node.prototype.remove = function(){
+		this.svgGroup.remove();
+		this.svgLabel.remove();
+		this.svgCircle.remove();
+		
+		// Remove all edges and refernces to this node.
+		for(var index in this.edges){
+			var edge = this.edges[index];
+			edge.remove(this);
+			delete this.edges[index];
+		}
+		this.edges = null;
+	};
+	
 	Node.prototype.setPosition = function(x, y, agents, graph){
 		if( x !== undefined ) this.x = x;
 		if( y !== undefined ) this.y = y;
@@ -343,6 +357,15 @@ var chronograph = {};
 		this.svgLine = line;
 	};
 	
+	Edge.prototype.remove = function(node){
+		if( this.node1.equals(node) ){
+			delete this.node2.edges[node.id];
+		}
+		else{
+			delete this.node1.edges[node.id];
+		}
+	};
+	
 	Edge.prototype.setPosition = function(){
 		if( this.svgLine == null || this.svgLine === undefined ){
 			throw new ChronographException("SVG DOM element never initialized for " + this.toString());
@@ -376,6 +399,7 @@ var chronograph = {};
 		self.format = format;
 		self.traverse = null;
 		self.mode = "view";
+		self.editMode = "select";
 		
 		
 		self.nodeId = 1;
@@ -394,7 +418,9 @@ var chronograph = {};
 
 	Graph.prototype.setMode = function(mode){
 		var self = this;
-
+		
+		self.setEditMode("select");
+		
 		if(mode == "clear" ){
 
 		}
@@ -404,19 +430,47 @@ var chronograph = {};
 			self.svgContainer.style("cursor", "move");
 			d3.selectAll("circle.graph-node").style("cursor", "pointer");
 
-			//self.graphToolbar.attr("visibility", "hidden");
+			self.graphToolbar.attr("visibility", "hidden");
 		}
 		else if( mode == "edit" ){
 			console.log("Setting graph to edit mode.");
 			self.mode = mode;
-			self.svgContainer.style("cursor", "crosshair");
-			d3.selectAll("circle.graph-node").style("cursor", "move");
-
-			//self.graphToolbar.attr("visibility", "visible");
+			self.setEditMode(self.editMode);
+			self.graphToolbar.attr("visibility", "visible");
+			self.selectNode(null);
 		}
 		else{
 			console.error("Invalid mode. Aborting.");
 			return false;
+		}
+	};
+	
+	// Manages internals to reflect the interface change.  Does not update the interface - the interface should be calling this.
+	Graph.prototype.setEditMode = function(mode){
+		var self = this;
+		
+		self.editMode = mode;
+		switch(mode){
+		case "select":
+			d3.selectAll("circle.graph-node").style("cursor", "pointer");
+			self.svgContainer.style("cursor", "move");
+			break;
+		case "add_node":
+			self.svgContainer.style("cursor", "crosshair");
+			d3.selectAll("circle.graph-node").style("cursor", "no-drop");
+			self.selectNode(null);
+			break;
+		case "add_edge":
+			
+			break;
+		case "delete_node":
+			d3.selectAll("circle.graph-node").style("cursor", "pointer");
+			self.svgContainer.style("cursor", "move");
+			self.selectNode(null);
+			break;
+		case "delete_edge":
+			
+			break;
 		}
 	};
 	
@@ -636,7 +690,7 @@ var chronograph = {};
 		}
 	};
 	
-	Graph.prototype.addNode = function(node, behavior){
+	Graph.prototype.addNode = function(node, behavior, click){
 		var self = this;
 		
 		if( node ){
@@ -660,15 +714,14 @@ var chronograph = {};
 							  .attr("stroke", "#777777")
 							  .attr("cursor", "move")
 							  .call(behavior)
-							  .on("click", function(d){
-								  self.selectNode(d);
-								  d3.event.stopPropagation(); // Prevent clicking a node from activating svg.click
-							  });
+							  .on("click", click);
 			
 			var label = group.append("text");
 			label.attr("id", "node_" + node.id + "_label");
 			
 			node.setSvg(group, label, circle);
+			
+			self.selectNode(node);
 		}
 		else {
 			console.error("Must add a valid node.");
@@ -676,8 +729,24 @@ var chronograph = {};
 		}
 	};
 	
+	Graph.prototype.deleteNode = function(node){
+		var self = this;
+		
+		if( node ){
+			node.remove();
+			delete self.nodes[node.id];
+		}
+	};
+	
 	Graph.prototype.selectNode = function(node){
 		var self = this;
+		
+		if(node == null){
+			for(var index in self.nodes){
+				self.nodes[index].unselect();
+			}
+			return;
+		}
 		
 		if( node.selected ){
 			node.unselect();
@@ -688,6 +757,7 @@ var chronograph = {};
 			}
 			node.select();
 		}
+		
 	};
 
 	
@@ -707,7 +777,7 @@ var chronograph = {};
 		}
 
 		function dragged(d) {
-		  if( self.mode == "edit" ){
+		  if( self.mode == "edit" && self.editMode == "select" ){
 			  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
 			  self.nodes[d.id].setPosition(d.x,d.y, self.agents, self);
 			}
@@ -728,21 +798,55 @@ var chronograph = {};
 				    .on("dragend", dragended);
 		
 		
+		var clickNode = function(d){
+			if( self.editMode == "delete_node"){
+				// Delete
+				console.log("delete the bastard.");
+				var confirmDialog = $("<div>").attr("id", "confirm_delete_dialog").attr("title", "Delete this node?").attr("class", "dialog");
+				confirmDialog.dialog({
+			      resizable: false,
+			      height: 250,
+			      modal: true,
+			      open: function(){
+			    	  $(this).html('<p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0; font-size: 12px;"></span>This node will be permanently deleted and cannot be recovered. Are you sure?</p>');
+			      },
+			      buttons: {
+			        Delete: function() {
+			        	// Actually delete it....
+			        	self.deleteNode(d);
+			        	
+			          $( this ).dialog( "close" );
+			        },
+			        Cancel: function() {
+			        	self.selectNode(null);
+			          $( this ).dialog( "close" );
+			        }
+			      }
+			    });
+			}
+			else{
+				self.selectNode(d);
+			}
+			d3.event.stopPropagation(); // Prevent clicking a node from activating svg.click
+		};
+		
 		var click = function(container){
 			//console.log("clicked: " + d3.event.x + ", " + d3.event.y);
-			var id = "chronograph" + self.nodeId;
-			while( d3.keys(self.nodes).indexOf(id) >= 0 ){
-				id = "chronograph" + (++self.nodeId);
+			if( self.mode == "edit" && self.editMode == "add_node" ){
+				var id = "chronograph" + self.nodeId;
+				while( d3.keys(self.nodes).indexOf(id) >= 0 ){
+					id = "chronograph" + (++self.nodeId);
+				}
+				var color = self.colors((self.nodeId-1)%self.numColors);
+				
+				var x = (d3.mouse(container)[0] - self.currentTranslate[0]) / self.currentScale;
+				var y = (d3.mouse(container)[1] - self.currentTranslate[1]) / self.currentScale;
+				var node = new Node(id, x, y, color, "Node " + self.nodeId);
+				
+				self.nodeId++;
+				
+				self.addNode(node, drag, clickNode);
 			}
-			var color = self.colors((self.nodeId-1)%self.numColors);
-			
-			var x = (d3.mouse(container)[0] - self.currentTranslate[0]) / self.currentScale;
-			var y = (d3.mouse(container)[1] - self.currentTranslate[1]) / self.currentScale;
-			var node = new Node(id, x, y, color, "Node " + self.nodeId);
-			
-			self.nodeId++;
-			
-			self.addNode(node, drag);
 		}
 		
 		self.svgContainer = self.container.append("svg");
@@ -765,9 +869,11 @@ var chronograph = {};
 
 		
 		function zoomed() {
-			self.currentTranslate = d3.event.translate;
-			self.currentScale = d3.event.scale;
-			self.graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+			if( self.mode == "view" || self.editMode == "select" || self.editMode == "delete_node" ){
+				self.currentTranslate = d3.event.translate;
+				self.currentScale = d3.event.scale;
+				self.graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+			}
 		}
 		
 		
@@ -791,10 +897,7 @@ var chronograph = {};
 							  .attr("stroke", "#777777")
 							  .attr("cursor", "move")
 							  .call(drag)
-							  .on("click", function(d){
-								  self.selectNode(d);
-								  d3.event.stopPropagation();
-							  });
+							  .on("click", clickNode);
 			
 			var label = group.append("text");
 			label.attr("id", "node_" + node.id + "_label");
@@ -831,7 +934,7 @@ var chronograph = {};
 		
 		var nodeInfo = graphInfo.append("g").attr("class", "node-info-group");
 		var widthOffset = parseInt(self.svgContainer.attr("width"));
-		self.svgNodeName = nodeInfo.append("text").attr("x", 400).attr("y", 200).attr("text-anchor", "end").text("testing");
+		//self.svgNodeName = nodeInfo.append("text").attr("x", 400).attr("y", 200).attr("text-anchor", "end").text("testing");
 		
 		
 	};
@@ -839,44 +942,91 @@ var chronograph = {};
 	Graph.prototype.initializeToolbarDOM = function(){
 		var self = this;
 
+		var iconSize = 31;
+		var iconSpacing = 2;
+		
 		self.graphToolbar = self.svgContainer.append("g").attr("class", "toolbar-group");
-		//self.graphToolbar.attr("visibility", "hidden");
-
-		var addNodeButton = self.graphToolbar.append("g");
-
-		var buttonSize = 40;
-
-		var newButton = function(group){
-			return group.append("rect")
-					.attr("x", 0)
-					.attr("y", 0)
-					.attr("width", buttonSize)
-					.attr("height", buttonSize)
-					.attr("rx", 5)
-					.attr("ry", 5)
-					.attr("fill", "#DDDDDD")
-					.attr("stroke", "#999999")
-					.attr("stroke-width", 1);
-		};
-
-		var addNodeButton = self.graphToolbar.append("g");
-		var addBack = newButton(addNodeButton);
-		var addIcon = addNodeButton.append("circle")
-									.attr("cx", buttonSize/2)
-									.attr("cy", buttonSize/2)
-									.attr("r", chronograph.nodeSize)
-									.attr("stroke", "#777777")
-									.attr("fill", "#ffbb78");
-
-		var deleteNodeButton = self.graphToolbar.append("g");
-		var deleteBack = newButton(deleteNodeButton);
-		deleteNodeButton.attr("transform", "translate(0, " + (buttonSize + 10) + ")");
-
-		var addEdgeButton = self.graphToolbar.append("g");
-		var addEdgeBack = newButton(addEdgeButton);
-		addEdgeButton.attr("transform", "translate(0, " + 2*(buttonSize + 10) + ")");
-
-		self.graphToolbar.attr("transform", "translate(20,200)");
+		
+		
+		var icons = ['select', 'add_node', 'delete_node', 'add_edge', 'delete_edge'];
+		
+		var background = self.graphToolbar.append("rect").attr("class", "toolbar-background")
+														 .attr("x", -7)
+														 .attr("y", 0)
+														 .attr("rx", 3)
+														 .attr("ry", 3)
+														 .attr("width", 45)
+														 .attr("height", icons.length*(iconSize+iconSpacing) + 5)
+														 .attr("stroke", "#a6a6a6")
+														 .attr("stroke-width", 1)
+														 .attr("fill", "#F0F0F0");
+		
+		// Default to the first one.
+		var selected = 0;
+		var iconBacks = [];
+		var iconObjs = [];
+		
+		for( index in icons ){
+			var iconId = icons[index];
+			var group = self.graphToolbar.append("g").attr("transform", "translate(0, " + index * (iconSize + iconSpacing) + ")");;
+			
+			var iconBack = group.append("image")
+								  .attr("x", 3)
+								  .attr("y", 3)
+								  .attr("height", iconSize)
+								  .attr("width", iconSize);
+			iconBacks[index] = iconBack;
+			
+			if( index == selected ){
+				iconBack.attr("xlink:href", "images/icon_back_selected.png");
+			}
+			
+			var icon = group.append("image")
+							.attr("x", 3)
+						   .attr("y", 3)
+						   .attr("height", iconSize)
+						   .attr("width", iconSize)
+						   .attr("class", "toolbar-icon")
+						   .attr("xlink:href", "images/icon_" + iconId + ".png");
+			iconObjs[index] = icon;
+			
+			icon.on("mouseover", (function(){
+				var i = index;
+				var back = iconBack;
+				return function(){
+					if( i != selected )
+						back.attr("xlink:href", "images/icon_back_hover.png");
+				}
+			})());
+			
+			icon.on("mouseout", (function(){
+				var i = index;
+				var back = iconBack;
+				return function(){
+					if( i != selected )
+						back.attr("xlink:href", "");
+				}
+			})());
+			
+			icon.on("click", (function(){
+				var id = iconId;
+				var i = index;
+				return function(){
+					d3.event.stopPropagation();
+					iconBacks[selected].attr("xlink:href", "");
+					iconBacks[i].attr("xlink:href", "images/icon_back_selected.png");
+					selected = i;
+					console.log("Setting graph edit mode to " + id);
+					self.setEditMode(id)
+				}
+			})());
+			
+		}
+		
+		
+		var heightOffset = $(window).height()/2 - parseInt(background.attr("height"));
+		self.graphToolbar.attr("transform", "translate(0," + heightOffset + ")");
+		
 
 
 	};
