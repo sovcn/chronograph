@@ -693,88 +693,15 @@ var gravity = {};
 
 		self.container.append(self.menu);
 		self.container.append(self.editMenu);
-		/*var newGraph = $("<button>").attr("id", "new_graph_button")
-									.text("New")
-									.button({
-										icons: { primary: "ui-icon-document" }
-									})
-									.click(function(){
-										newGraphEvent();
-									});
-
-		var loadGraph = $("<button>").attr("id", "load_graph_button")
-									.text("Load")
-									.button({
-										icons: { primary: "ui-icon-folder-collapsed" }
-									})
-									.click(function(){
-										loadGraphEvent();
-									});
-		
-		var editGraph = $("<button>").attr("id", "edit_graph_button")
-									.text("Edit")
-									.button({
-										icons: { primary: "ui-icon-pencil" }
-									});
-		
-		self.menu.append(newGraph);
-		self.menu.append(loadGraph);
-		self.menu.append(editGraph);
-		*/
-
-		//self.information = $("<div>").attr("id", "information_panel");
-		
-		//var header = $("<h1>").attr("id", "info_header").text("Information");
-		//self.information.append(header);
-		
-		//self.information_table = $("<table>").attr("id", "information_table");
-		//self.information.append(self.information_table);
-		/*self.timestep = $("<p>").attr("id", "traverse_timestep");
-		self.information.append(self.timestep);
-		
-		self.numNodes = $("<p>").attr("id", "num_nodes");
-		self.information.append(self.numNodes);
-		*/
-		
-		//self.container.append(self.information);
 	};
 	
 	gravity.load = function(){
 		
 		if( window.jQuery && window.d3 ){
-			/*$.getJSON('data/graph1.json', function(json){
-				var graph = chronograph.newGraph();
-				var controller = new Controller(graph, "#container");
-				controller.draw(json, chronograph.data.JSON, true);
-			})
-			.fail(function(){
-				console.error("Unable to load graph data.");
-			});*/
-			
-			
-			/*d3.xml('data/graph2.xml', 'application/xml', function(error, xml){
-			if( error ){
-				console.error(error);
-			}
-			else{
-				var graph = chronograph.newGraph();
-				var controller = new Controller(graph, "#container");
-				controller.draw(xml, chronograph.data.XML, true);
-			}
-			});*/
 	
 			var controller = new Controller("#container");
 			controller.createDOM();
 
-			/*$.get("api/graphs", function(data){
-				var graph = data[0];
-				var json = JSON.parse(graph.data);
-
-				var graphObj = chronograph.newGraph(graph._id, graph.name);
-				var controller = new Controller("#container");
-				controller.createDOM();
-				//controller.draw(json, chronograph.data.JSON, true);
-			});*/
 
 		} else{
 			
