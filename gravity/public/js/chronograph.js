@@ -364,6 +364,8 @@ var chronograph = {};
 		else{
 			delete this.node1.edges[node.id];
 		}
+		
+		this.svgLine.remove();
 	};
 	
 	Edge.prototype.setPosition = function(){
@@ -461,7 +463,9 @@ var chronograph = {};
 			self.selectNode(null);
 			break;
 		case "add_edge":
-			
+			d3.selectAll("circle.graph-node").style("cursor", "pointer");
+			self.svgContainer.style("cursor", "move");
+			self.selectNode(null);
 			break;
 		case "delete_node":
 			d3.selectAll("circle.graph-node").style("cursor", "pointer");
@@ -759,7 +763,41 @@ var chronograph = {};
 		}
 		
 	};
-
+	
+	Graph.prototype.addEdge = function(fromNode, toNode){
+		var self = this;
+		
+		var edge = new Edge(fromNode, toNode);
+		
+		var otherEdge;
+		var edgeExists = false;
+		for(var index in self.edges){
+			otherEdge = self.edges[index];
+			if( edge.equals(otherEdge) ){
+				edgeExists = true;
+				break;
+			}
+		}
+		
+		if( !edgeExists ){
+			toNode.addEdge(edge, fromNode);
+			fromNode.addEdge(edge, toNode);
+			
+			var line = self.lineGroup.append("line");
+			line.attr("id", "edge_" + edge.node1.id + "_" + edge.node2.id)
+				.attr("stroke", "#777777");
+			
+			edge.setSvg(line);
+			
+			self.edges.push(edge);
+			
+			// Call on one of the nodes to properly position the edge.
+			toNode.setPosition();
+		}
+		else{
+			console.log("Only one edge can exist between two nodes.");
+		}
+	};
 	
 	Graph.prototype.initializeContainerDOM = function(){
 		var self = this;
@@ -798,6 +836,9 @@ var chronograph = {};
 				    .on("dragend", dragended);
 		
 		
+		var selectingNextNode = false;
+		var fromNode = null;
+		
 		var clickNode = function(d){
 			if( self.editMode == "delete_node"){
 				// Delete
@@ -823,6 +864,24 @@ var chronograph = {};
 			        }
 			      }
 			    });
+			}
+			else if( self.editMode == "add_edge" ){
+				if( selectingNextNode ){
+					console.log("to " + d.toString());
+					
+					var toNode = d;
+					if( !fromNode.equals(toNode) ){
+						// Add Edge
+						self.addEdge(fromNode, toNode);
+					}
+					
+					selectingNextNode = false;
+				}
+				else{
+					console.log("adding a new edge from " + d.toString());
+					fromNode = d;
+					selectingNextNode = true;
+				}
 			}
 			else{
 				self.selectNode(d);
