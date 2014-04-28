@@ -264,6 +264,8 @@ var gravity = {};
 		self.timestep = null;
 		
 		self.createDOM();
+		
+		self.setMode("view");
 	}
 	
 	// Updates all of the information in the GUI
@@ -497,10 +499,10 @@ var gravity = {};
 		})();
 		
 		
-		self.importDialog = $("<div>").attr("id", "import_dialog").attr("title", "Import Graph Data").attr("class", "dialog");
+		//self.importDialog = $("<div>").attr("id", "import_dialog").attr("title", "Import Graph Data").attr("class", "dialog");
 
 		// Maintain scope
-		(function(){
+		/*(function(){
 			var dialogContainer = $("<div>");
 			self.importDialog.append(dialogContainer);
 			
@@ -582,7 +584,7 @@ var gravity = {};
 					dataField.val( "" ).removeClass( "ui-state-error" );
 				}
 			});
-		})();
+		})();*/
 	};
 
 	Settings.prototype.createDOM = function(){
@@ -627,15 +629,16 @@ var gravity = {};
 										graph._id = self.controller.graph.id;
 										graph.name = self.controller.graph.name;
 										graph.data = JSON.stringify(self.controller.graph.exportData());
+										graph.format = self.controller.graph.format;
 										
 										
 										var jqxhr = $.ajax(
-												{url: "api/graphs/" + graph._id, 
+												{url: "graphs/" + graph._id, 
 												 data: graph,
 												 type: "PUT",
 												 success: function(data, textStatus, jqXHR){
 														console.log("Saving Graph. Post response:"); console.dir(data);
-														var graphObj = chronograph.newGraph(data._id, data.name, JSON.parse(data.data), chronograph.data.JSON);
+														var graphObj = chronograph.newGraph(data._id, data.name, data.data, data.format);
 
 														self.controller.setGraph(graphObj);
 														self.controller.draw();
@@ -653,11 +656,13 @@ var gravity = {};
 		 .click(function(){
 			 	// Load unmodified graph from database.			
 				var jqxhr = $.ajax(
-						{url: "api/graphs/" + self.controller.graph.id,
+						{url: "graphs/" + self.controller.graph.id,
 						 type: "GET",
 						 success: function(data, textStatus, jqXHR){
 								console.log("Fetching unmodified Graph. Post response:"); console.dir(data);
-								var graphObj = chronograph.newGraph(data._id, data.name, JSON.parse(data.data), chronograph.data.JSON);
+								
+								
+								var graphObj = chronograph.newGraph(data._id, data.name, data.data, data.format);
 
 								self.controller.setGraph(graphObj);
 								self.controller.draw();
@@ -669,8 +674,8 @@ var gravity = {};
 				});
 		 });
 		
-		row.append(self.newGraphButton);
-		row.append(self.loadGraphButton);
+		//row.append(self.newGraphButton);
+		//row.append(self.loadGraphButton);
 		row.append(self.editGraphButton);
 		row.append(self.saveGraphButton);
 		row.append(self.cancelEditButton);
@@ -679,15 +684,15 @@ var gravity = {};
 		self.editMenu = $("<div>").attr("id", "edit_menu")
 								  .css("display", "none");
 		
-		var importLink = $("<a>").attr("id", "import_graph_link")
+		/*var importLink = $("<a>").attr("id", "import_graph_link")
 							 .text("Import Graph")
 							 .attr("href", "#")
 							 .click(function(){
 								 self.importDialog.dialog("open");
 								 return false;
-							 });
+							 });*/
 		
-		self.editMenu.append(importLink);
+		//self.editMenu.append(importLink);
 		
 
 
@@ -695,13 +700,15 @@ var gravity = {};
 		self.container.append(self.editMenu);
 	};
 	
-	gravity.load = function(){
+	gravity.load = function(container, graph){
 		
 		if( window.jQuery && window.d3 ){
 	
-			var controller = new Controller("#container");
+			var controller = new Controller(container);
+			controller.setGraph(graph);
 			controller.createDOM();
-
+			controller.draw();
+			controller.setMode("view");
 
 		} else{
 			

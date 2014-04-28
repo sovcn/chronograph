@@ -11,8 +11,9 @@ var chronograph = {};
 	
 	// Data information
 	chronograph.data = {};
-	chronograph.data.XML = 0;
-	chronograph.data.JSON = 1;
+	chronograph.data.XML = "XML";
+	chronograph.data.JSON = "JSON";
+	chronograph.data.RAW_TRAVERSAL = "RAW_TRAVERSAL";
 	chronograph.validFormats = ["xml", "json"];
 	
 	// Constants
@@ -25,6 +26,8 @@ var chronograph = {};
 		this.message = message;
 		this.name = "ChronographException";
 	}
+	
+	chronograph.ChronographException = ChronographException;
 	
 	
 	// Class XmlDocument
@@ -102,13 +105,40 @@ var chronograph = {};
 		this.start = start;
 		this.label = label;
 		this.steps = steps;
+
+
+		// Tracking Values - Do Not Export
 		this.currentNode = currentNode;
-		
+
 		this.svgCircle = null;
 		
 		this.selected = false;
 		this.unselectedOpacity = ".25";
+		// End Tracking Values
 	}
+
+	Agent.prototype.calculateTraversalMap = function(timestep){
+		var self = this;
+
+		var traversalMap = d3.map();
+
+		if( timestep > self.steps.length ){
+			timestep = self.steps.length;
+		}
+
+		var step;
+		for(var i=0;i<Math.floor(timestep);i++){
+			if( traversalMap.has(self.steps[i].to) ){
+				traversalMap.set(self.steps[i].to, traversalMap.get(self.steps[i].to) + 1);
+			}
+			else{
+				traversalMap.set(self.steps[i].to, 1);
+			}
+			
+		}
+
+		return traversalMap;
+	};
 	
 	Agent.prototype.exportObj = function(){
 		var self = this;
@@ -118,6 +148,7 @@ var chronograph = {};
 		obj.start = self.start;
 		obj.label = self.label;
 		obj.steps = self.steps;
+
 		
 		return obj;
 	};
@@ -240,12 +271,15 @@ var chronograph = {};
 		this.y = parseInt(y);
 		this.color = color;
 		this.label = label;
-		
+
+		// Tracking Values - Do not export
+		this.selected = false;
+
 		this.svgGroup = null;
 		this.svgLabel = null;
 		this.svgCircle = null;
 
-		this.selected = false;
+		// End Tracking Values
 		
 		// Maps id => Edge where Edge is the edge connecting this node to the node with id
 		this.edges = {};
@@ -398,13 +432,21 @@ var chronograph = {};
 		self.name = name;
 
 		self.data = data;
+		
 		self.format = format;
+		if( self.format != chronograph.data.JSON && self.format != chronograph.data.XML )
+			self.format = chronograph.data.JSON;
+		
+		self.dataInitialized = false;
+		
 		self.traverse = null;
 		self.mode = "view";
 		self.editMode = "select";
 		
 		
 		self.nodeId = 1;
+		self.nodePrefix = "g";
+		self.agentPrefix = "a";
 		self.numColors = 20;
 		self.colors = d3.scale.category20();
 		
@@ -412,7 +454,10 @@ var chronograph = {};
 		self.currentScale = 1;
 		
 		self.currentStep = 0;
+		self.calculatedStep = 0;
 		self.maxSteps = 0;
+		self.traversalMap = {};
+		self.maxTraverse = 0;
 		
 		self.selectedNode = null;
 		
@@ -420,6 +465,11 @@ var chronograph = {};
 
 	Graph.prototype.setMode = function(mode){
 		var self = this;
+		
+		if( !self.drawn ){
+			console.error("Cannot set the mode on a graph that has not been drawn.");
+			return;
+		}
 		
 		self.setEditMode("select");
 		
@@ -478,7 +528,7 @@ var chronograph = {};
 		}
 	};
 	
-	Graph.prototype.draw = function(cont){
+	Graph.prototype.parseGraphData = function(){
 		var self = this;
 		// Whether or not traverse data is included with this graph
 		if(self.format == chronograph.data.JSON){
@@ -488,6 +538,7 @@ var chronograph = {};
 			// TODO: Parse XML into JSON
 			var xmlDoc = new XmlDocument(self.data);
 			self.parsedData = xmlDoc.parse();
+			self.format = chronograph.data.JSON;
 		}
 
 		if( self.parsedData.traversal != undefined && self.parsedData.traversal ){
@@ -496,9 +547,17 @@ var chronograph = {};
 		else{
 			self.traverse = false;
 		}
+	}
+	
+	Graph.prototype.draw = function(cont){
+		var self = this;
+		
+		self.parseGraphData();
 		
 		// Initialize DOM structure
 		self.container = d3.select(cont);
+
+		self.container.html('');
 		
 		// Hide the svg container until everything has been initialized
 		self.container.style("display", "none");
@@ -527,6 +586,7 @@ var chronograph = {};
 		}
 		
 		self.container.style("display", "block");
+		self.drawn = true;
 	};
 	
 	Graph.prototype.setMaxSteps = function(){
@@ -543,6 +603,36 @@ var chronograph = {};
 		self.maxSteps = max;
 	};
 	
+	Graph.prototype.constructTraversalMap = function(){
+		var self = this;
+
+		self.traversalMap = {};
+		for(var index in self.nodes){
+			self.traversalMap[self.nodes[index].id] = 0;
+		}
+	};
+
+	Graph.prototype.calculateTraversalMap = function(timestep){
+		var self = this;
+
+		if( self.traversalMap == null || d3.keys(self.traversalMap) == 0 ){
+			self.constructTraversalMap();
+		}
+
+
+		self.maxTraverse = 0;
+
+		//N^2 is scary for real time...  Might blow up for big graphs...
+		for(var index in self.agents){
+			var agentMap = self.agents[index].calculateTraversalMap(timestep);
+			agentMap.forEach(function(key, value){
+				self.traversalMap[key] += value;
+			});
+		}
+
+		self.calculatedStep = Math.floor(timestep);
+	};
+
 	Graph.prototype.setArbitraryTimeStep = function(step){
 		var self = this;
 		
@@ -552,6 +642,10 @@ var chronograph = {};
 			self.agents[index].setToTimeStep(step, self.nodes);
 		}
 		
+		if( Math.floor(self.currentStep) != self.calculatedStep ){
+			self.calculateTraversalMap(self.currentStep);
+		}
+
 		self.graphTimestep.text("Timestep: " + Math.round(step*100)/100);
 	};
 	
@@ -612,6 +706,93 @@ var chronograph = {};
 		}
 	};
 	
+	Graph.prototype.importTraversalData = function(data, label, format){
+		var self = this;
+		
+		if( format != chronograph.data.RAW_TRAVERSAL ){
+			console.error("Cannot import formats other than Gravity raw traversal data at this time.");
+			throw new ChronographException("Cannot import formats other than Gravity raw traversal data at this time.");
+		}
+		
+		if( !self.dataInitialized ){
+			self.parseGraphData();
+			self.initializeGraphData();
+			if( self.traverse ){
+				self.initializeTraverseData();
+			}
+		}
+		// For now we are ignoring real time and only displaying order.
+		try{
+			var steps = data.split(";");
+			steps = steps.splice(0, steps.length-1); // Cut off the end for trailing ;
+			
+			var startObj, nodeObj, lastNodeObj;
+			var first = true;
+			var thisTimestamp = 0, lastTimestamp = 0;
+			var stepArr = [];
+			for(var index in steps){
+				var step = steps[index].split(",");
+				var node = step[0];
+				thisTimestamp = parseFloat(step[1]);
+				
+				lastObj = nodeObj;
+				nodeObj = self.nodes[self.nodePrefix + node];
+				
+				
+				// Do Something
+				if( !nodeObj || nodeObj == undefined ){
+					throw new ChronographException("Invalid data format. The imported graph structure does not match the structure of the actual graph.");
+				}
+				
+				// Keep track of the first one.
+				if( first ){
+					startObj = nodeObj;
+					lastTimestamp = thisTimestamp;
+					first = false;
+					continue;
+				}
+				
+				// Only gets here starting 2nd iteration.
+				if( !startObj || startObj == undefined ){
+					// Only one stop... No traversal
+					throw new ChronographException("Invalid data. Agents must make more than one stop.");
+				}
+				
+				var stepObj = {from: lastObj.id, to: nodeObj.id, timespan: thisTimestamp - lastTimestamp };
+				stepArr.push(stepObj);
+				
+				lastTimestamp = thisTimestamp;
+			}
+			
+			var id;
+			if( !self.agents || d3.keys(self.agents).length == 0 ){
+				// No Agents Yet
+				id = self.agentPrefix + "1";
+			}
+			else{
+				id = d3.keys(self.agents).length+1;
+				// If it exists, keep going until it doesn't.  Will ensure no key collisions
+				while(d3.keys(self.agents).indexOf(self.agentPrefix + id) != -1){
+					id++;
+				}
+				id = self.agentPrefix + id;
+			}
+			
+			var agentObj = new Agent(id, startObj.id, label, stepArr);
+			self.agents[agentObj.id] = agentObj;
+			self.setMaxSteps();
+		}
+		catch(e){
+			if( e.name == "ChronographException" ){
+				throw e;
+			}
+			
+			throw new ChronographException("Invalid data format.  Please check to make sure that you are importing valid data.");
+		}
+		
+		return true;
+	};
+	
 	Graph.prototype.exportData = function(){
 		var self = this;
 		
@@ -649,6 +830,8 @@ var chronograph = {};
 				
 				self.nodes[nodeObj.id] = nodeObj;
 			}
+			
+			self.nodeId = d3.keys(self.nodes).length;
 			
 			// Initilize Edge Objects
 			for(var index in self.nodes){
@@ -692,6 +875,8 @@ var chronograph = {};
 			var message = "Cannot initailize graph.  No data was loaded.";
 			throw new ChronographException(message);
 		}
+		
+		self.dataInitialized = true;
 	};
 	
 	Graph.prototype.addNode = function(node, behavior, click){
@@ -892,9 +1077,9 @@ var chronograph = {};
 		var click = function(container){
 			//console.log("clicked: " + d3.event.x + ", " + d3.event.y);
 			if( self.mode == "edit" && self.editMode == "add_node" ){
-				var id = "chronograph" + self.nodeId;
+				var id = self.nodePrefix + self.nodeId;
 				while( d3.keys(self.nodes).indexOf(id) >= 0 ){
-					id = "chronograph" + (++self.nodeId);
+					id = self.nodePrefix + (++self.nodeId);
 				}
 				var color = self.colors((self.nodeId-1)%self.numColors);
 				
@@ -1037,7 +1222,7 @@ var chronograph = {};
 			iconBacks[index] = iconBack;
 			
 			if( index == selected ){
-				iconBack.attr("xlink:href", "images/icon_back_selected.png");
+				iconBack.attr("xlink:href", "public/graphs/assets/img/icon_back_selected.png");
 			}
 			
 			var icon = group.append("image")
@@ -1046,7 +1231,7 @@ var chronograph = {};
 						   .attr("height", iconSize)
 						   .attr("width", iconSize)
 						   .attr("class", "toolbar-icon")
-						   .attr("xlink:href", "images/icon_" + iconId + ".png");
+						   .attr("xlink:href", "public/graphs/assets/img/icon_" + iconId + ".png");
 			iconObjs[index] = icon;
 			
 			icon.on("mouseover", (function(){
@@ -1054,7 +1239,7 @@ var chronograph = {};
 				var back = iconBack;
 				return function(){
 					if( i != selected )
-						back.attr("xlink:href", "images/icon_back_hover.png");
+						back.attr("xlink:href", "public/graphs/assets/img/icon_back_hover.png");
 				}
 			})());
 			
@@ -1073,7 +1258,7 @@ var chronograph = {};
 				return function(){
 					d3.event.stopPropagation();
 					iconBacks[selected].attr("xlink:href", "");
-					iconBacks[i].attr("xlink:href", "images/icon_back_selected.png");
+					iconBacks[i].attr("xlink:href", "public/graphs/assets/img/icon_back_selected.png");
 					selected = i;
 					console.log("Setting graph edit mode to " + id);
 					self.setEditMode(id)
@@ -1097,6 +1282,13 @@ var chronograph = {};
 		if( window.d3 ){
 			
 			// Make sure that the user has specified a valid data format to provide to chronograph
+			if( format == chronograph.data.XML ){
+				data = chronograph.textToXML(data);
+			}
+			else{
+				data = JSON.parse(data);
+			}
+			
 			return new Graph(id, name, data, format);
 		}
 		else{
@@ -1104,42 +1296,147 @@ var chronograph = {};
 			return null;
 		}
 	};
+
+
+	// Class Timeline
+	function Timeline(sliderContainer, playBtnContainer, domain, range, slideCallback){
+		var self = this;
+		self.sliderRange = domain;
+		self.graphRange = range;
+		self.slideCallback = slideCallback;
+		
+		self.sliderMax = 500;
+		self.playResolution = 20; // ms
+		self.playNumSteps = 500;
+		
+		self.playIntHandler = null;
+		
+		self.timelineScale = d3.scale.linear()
+									 .domain(self.sliderRange)
+									 .range(self.graphRange);
+
+		self.playSpeed = 1;
+		self.currentValue = 0;
+
+
+		self.timelineContainer = $(sliderContainer);
+		self.playButtonContainer = $(playBtnContainer);
+	}
+
+	Timeline.prototype.setPlaySpeed = function(speed){
+		this.playSpeed = speed;
+	};
+	
+	Timeline.prototype.draw = function(){
+		var self = this;
+
+		self.createDOM();
+	};
+	
+	Timeline.prototype.createDOM = function(){
+		var self = this;
+		
+		self.playButtonContainer.html('');
+
+		var playButton = $("<button>").attr("id", "play_button");
+		playButton.button({
+			icons:{
+				primary: "ui-icon-play"
+			},
+			text: false
+		});
+		
+		var playStep = function(){
+			var stepSize = self.sliderRange[1]/self.playNumSteps * self.playSpeed;
+			var newValue = self.currentValue + stepSize;
+			
+			if( newValue > parseInt(self.timelineContainer.slider("option", "max"))){
+				clearInterval(self.playIntHandler);
+				self.playIntHandler = null;
+				$(playButton).button("option", {
+					icons:{ primary: "ui-icon-play" }
+				});
+			}
+			else{
+				self.timelineContainer.slider("value", newValue);
+				self.currentValue = newValue;
+				self.slideCallback(self.timelineScale(newValue));
+			}
+		};
+		
+		playButton.click(function(){
+			if( self.playIntHandler == null ){
+				// Play!
+				if( self.currentValue >= parseInt(self.timelineContainer.slider("option", "max")) - self.playSpeed ){
+					self.currentValue = 0;
+				}
+				self.playIntHandler = setInterval(playStep, self.playResolution);
+				$(this).button("option", {
+					icons:{ primary: "ui-icon-pause" }
+				});
+			}
+			else{
+				clearInterval(self.playIntHandler);
+				self.playIntHandler = null;
+				$(this).button("option", {
+					icons:{ primary: "ui-icon-play" }
+				});
+			}
+		});
+		
+		self.playButtonContainer.append(playButton);
+		
+		self.timelineContainer.slider({
+			max: self.sliderMax,
+			slide: function(event, ui){
+				var value = $(this).slider("value");
+				self.currentValue = value;
+				self.slideCallback(self.timelineScale(value));
+			}
+		});
+		
+	};
+
+	// Timeline accessor.
+	chronograph.newTimeline = function(sliderContainer, playBtnContainer, domain, range, slideCallback){
+		return new Timeline(sliderContainer, playBtnContainer, domain, range, slideCallback);
+	};
+	
+	// https://gist.github.com/stevenaw/1305672
+	chronograph.textToXML = function ( text ) {
+	      try {
+	        var xml = null;
+	        
+	        if ( window.DOMParser ) {
+	 
+	          var parser = new DOMParser();
+	          xml = parser.parseFromString( text, "text/xml" );
+	          
+	          var found = xml.getElementsByTagName( "parsererror" );
+	 
+	          if ( !found || !found.length || !found[ 0 ].childNodes.length ) {
+	            return xml;
+	          }
+	 
+	          return null;
+	        } else {
+	 
+	          xml = new ActiveXObject( "Microsoft.XMLDOM" );
+	 
+	          xml.async = false;
+	          xml.loadXML( text );
+	 
+	          return xml;
+	        }
+	      } catch ( e ) {
+	        // suppress
+	      }
+	    };
 	
 	chronograph.parseXml = function(xmlStr){
 		
-		// https://gist.github.com/stevenaw/1305672
-		function textToXML ( text ) {
-		      try {
-		        var xml = null;
-		        
-		        if ( window.DOMParser ) {
-		 
-		          var parser = new DOMParser();
-		          xml = parser.parseFromString( text, "text/xml" );
-		          
-		          var found = xml.getElementsByTagName( "parsererror" );
-		 
-		          if ( !found || !found.length || !found[ 0 ].childNodes.length ) {
-		            return xml;
-		          }
-		 
-		          return null;
-		        } else {
-		 
-		          xml = new ActiveXObject( "Microsoft.XMLDOM" );
-		 
-		          xml.async = false;
-		          xml.loadXML( text );
-		 
-		          return xml;
-		        }
-		      } catch ( e ) {
-		        // suppress
-		      }
-		    }
 		
-		
-		var xml = textToXML(xmlStr);
+		var xml = chronograph.textToXML(xmlStr);
 		var doc = new XmlDocument(xml);
 		try{
 			var json = doc.parse();

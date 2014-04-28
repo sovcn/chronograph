@@ -2,5 +2,7 @@
 .settings
 .settings/*
 
+.DS_Store
+
 gravity/node_modules
 
